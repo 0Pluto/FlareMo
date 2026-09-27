@@ -1,6 +1,11 @@
 import { importBundleSchema } from "@flaremo/contracts";
-import { applyFlaremoMigrations, createDb, memos } from "@flaremo/db";
-import { eq } from "drizzle-orm";
+import {
+  applyFlaremoMigrations,
+  createDb,
+  memoHourlyCounts,
+  memos,
+} from "@flaremo/db";
+import { eq, sql } from "drizzle-orm";
 import { Miniflare } from "miniflare";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { importData } from "./import-export";
@@ -626,6 +631,43 @@ describe("recalibration", () => {
     expect(await readHourlyCountTotals(db, owner.id)).toEqual(
       await liveTotals(owner.id),
     );
+  });
+
+  it("rebuilds a user whose counter spans more than one insert chunk", async () => {
+    // D1 caps a query at 100 bound parameters and each counter row binds six,
+    // so the rebuild has to chunk at 16 rows. An earlier chunk size of 200
+    // looked safe but overflowed the moment a user had more than 16 active
+    // UTC hours — which is every instance with any history at all. The throw
+    // happened before the sweep, so the nightly job failed *and* left the
+    // counter unrepaired. The other tests here seed a handful of memos and
+    // never crossed the boundary, which is why this went unnoticed.
+    const HOURS = 40;
+    for (let hour = 0; hour < HOURS; hour += 1) {
+      // Distinct UTC hours, spread across days — the bucket count has to equal
+      // the memo count or the test never crosses the chunk boundary.
+      const createdAt = new Date(
+        Date.UTC(2026, 0, 1 + Math.floor(hour / 24), hour % 24, 0, 0),
+      ).toISOString();
+      await seedMemo({
+        id: `memos/chunky-${String(hour).padStart(3, "0")}`,
+        createdAt,
+      });
+    }
+
+    await recalibrateAllHourlyCounts(db, new Date().toISOString());
+
+    // Assert the premise, not just the outcome: if the seed ever collapses
+    // into fewer buckets this test would silently stop covering the boundary
+    // it exists to guard.
+    const bucketCount = await db
+      .select({ c: sql<number>`count(*)`.mapWith(Number) })
+      .from(memoHourlyCounts)
+      .get();
+    expect(bucketCount?.c).toBe(HOURS);
+
+    const totals = await readHourlyCountTotals(db, owner.id);
+    expect(totals).toEqual(await liveTotals(owner.id));
+    expect(totals.normal).toBe(HOURS);
   });
 
   it("drops tombstones left by a fully drained bucket", async () => {
