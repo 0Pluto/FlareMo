@@ -1,7 +1,7 @@
 import type { createDb } from "@flaremo/db";
 import type { PlanLimits } from "@flaremo/domain";
 import { currentUserToDto } from "@flaremo/memos";
-import { getFlareMoAuth, getFlareMoDb } from "../../../context";
+import { getFlareMoAuth } from "../../../context";
 import { getAuthUserCached } from "../../../identity-cache";
 import { CompatValidationError } from "../../../memos-compat/errors";
 import { registerCompatMember } from "../../../memos-compat/member-service";

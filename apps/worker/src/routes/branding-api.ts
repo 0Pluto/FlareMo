@@ -4,7 +4,7 @@ import {
   getBranding,
 } from "@flaremo/domain";
 import { Hono } from "hono";
-import { getFlareMoAuth, getFlareMoDb, type HonoBindings } from "../context";
+import { getFlareMoDb, type HonoBindings } from "../context";
 import { jsonError } from "../http";
 
 /**

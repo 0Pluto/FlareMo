@@ -6,7 +6,7 @@ import {
 import { attachmentToDto, memoToDto, shareToDto } from "@flaremo/memos";
 import { Hono } from "hono";
 import { attachmentObjectResponse } from "../attachment-http";
-import { getFlareMoAuth, getFlareMoDb, type HonoBindings } from "../context";
+import { getFlareMoDb, type HonoBindings } from "../context";
 import { jsonError } from "../http";
 
 export const publicApi = new Hono<HonoBindings>();

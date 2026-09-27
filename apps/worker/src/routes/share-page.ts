@@ -1,7 +1,7 @@
 import { getBranding, getPublicShareByToken } from "@flaremo/domain";
 import type { Context, Hono } from "hono";
 import { SitemapIndexStream, streamToPromise } from "sitemap";
-import { getFlareMoAuth, getFlareMoDb, type HonoBindings } from "../context";
+import { getFlareMoDb, type HonoBindings } from "../context";
 import {
   attachmentImageDimensions,
   contentToPlainText,

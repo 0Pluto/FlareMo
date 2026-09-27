@@ -2,7 +2,6 @@ import type { createDb, UserRow } from "@flaremo/db";
 import { SELF_HOST_UNLIMITED } from "@flaremo/domain";
 import type { Context } from "hono";
 import {
-  getFlareMoAuth,
   getFlareMoDb,
   type getOptionalRequestContext,
   type getRequestContext,

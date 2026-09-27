@@ -1,9 +1,5 @@
 import { listMemosPersonalAccessTokens } from "@flaremo/domain";
-import {
-  getFlareMoAuth,
-  getFlareMoDb,
-  loadAuthFactory,
-} from "../../../context";
+import { getFlareMoAuth, loadAuthFactory } from "../../../context";
 import { CompatValidationError } from "../../../memos-compat/errors";
 import { personalAccessTokenToDto } from "../../../memos-compat/pat";
 import { optionalString, requiredString } from "../shared";

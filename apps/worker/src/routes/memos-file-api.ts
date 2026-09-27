@@ -1,12 +1,7 @@
 import { getAttachmentById, getPublicShareByToken } from "@flaremo/domain";
 import { type Context, Hono } from "hono";
 import { attachmentObjectResponse } from "../attachment-http";
-import {
-  getFlareMoAuth,
-  getFlareMoDb,
-  getRequestContext,
-  type HonoBindings,
-} from "../context";
+import { getFlareMoDb, getRequestContext, type HonoBindings } from "../context";
 import { jsonError } from "../http";
 
 /**

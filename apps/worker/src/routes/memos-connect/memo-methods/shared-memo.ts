@@ -1,6 +1,6 @@
 import { getPublicShareByToken, listMemoReactions } from "@flaremo/domain";
 import { currentMemoToDto } from "@flaremo/memos";
-import { getFlareMoAuth, getFlareMoDb } from "../../../context";
+import { getFlareMoDb } from "../../../context";
 import type { BinaryTransport } from "../../../memos-protobuf";
 import { type ConnectContext, record, requiredString } from "../shared";
 import { connectValue } from "../transport";
