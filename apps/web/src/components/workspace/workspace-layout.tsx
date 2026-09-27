@@ -23,6 +23,7 @@ import {
 import { useDataTransfer } from "@/hooks/use-data-transfer";
 import { useMemoMutations } from "@/hooks/use-memo-mutations";
 import { queryKeys } from "@/lib/query-keys";
+import { ACTIVITY_WINDOW_DAYS } from "@/lib/time-horizon";
 import { TIMELINE_SEARCH } from "@/lib/timeline-search";
 import { cn } from "@/lib/utils";
 
@@ -104,8 +105,11 @@ export function WorkspaceLayout({
   });
 
   const statsQuery = useQuery({
-    queryKey: ["memo-stats", "all", timeZone],
-    queryFn: () => getMemoStats(timeZone, "all"),
+    // Shares the key with the explorer's stats query so the page issues one
+    // request. Both must name the same window or React Query would treat them
+    // as two entries and fetch the stats twice.
+    queryKey: ["memo-stats", "all", timeZone, ACTIVITY_WINDOW_DAYS],
+    queryFn: () => getMemoStats(timeZone, "all", ACTIVITY_WINDOW_DAYS),
     staleTime: 30_000,
   });
 
