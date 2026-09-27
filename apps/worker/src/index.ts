@@ -14,11 +14,11 @@ import {
 } from "@flaremo/domain";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { getTrustedOrigins } from "./auth";
+import { getTrustedOrigins } from "./auth-env";
 import {
   assertTrustedCookieMutation,
   getFlareMoAuthHandler,
-  getFlareMoRuntime,
+  getFlareMoDb,
   getRequestContext,
   type HonoBindings,
 } from "./context";
@@ -212,7 +212,7 @@ export function createFlareMoApp(
   app.get("/api/app/auth-providers", async (c) => {
     // Direct resolve (no TTL cache): the login page must reflect an owner's
     // fresh provider config on the next reload.
-    const { db } = getFlareMoRuntime(c.env);
+    const db = getFlareMoDb(c.env);
     const oauth = await resolveOauthIntegration(c.env, db);
     return c.json(
       { google: Boolean(oauth.google), github: Boolean(oauth.github) },
@@ -273,7 +273,7 @@ export function createFlareMoApp(
     // Only browsers without a <link rel="icon"> hit this; redirect to the
     // custom favicon when one is configured, else to the bundled asset.
     try {
-      const branding = await getBranding(getFlareMoRuntime(c.env).db);
+      const branding = await getBranding(getFlareMoDb(c.env));
       if (branding.favicon) {
         return c.redirect(
           `/api/app/branding/favicon?v=${encodeURIComponent(branding.favicon.updated_at)}`,
@@ -463,7 +463,7 @@ export function createFlareMoWorker(
       // per-request query tax. The daily cron sweeps whatever reads missed.
       const method = request.method.toUpperCase();
       if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
-        const { db } = getFlareMoRuntime(env);
+        const db = getFlareMoDb(env);
         // `ExecutionContext` is part of the Worker handler contract. Keeping
         // this post-response work on `waitUntil` avoids changing the route-only
         // test semantics for direct handler calls without a Worker runtime.

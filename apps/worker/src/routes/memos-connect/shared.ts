@@ -2,7 +2,8 @@ import type { createDb, UserRow } from "@flaremo/db";
 import { SELF_HOST_UNLIMITED } from "@flaremo/domain";
 import type { Context } from "hono";
 import {
-  getFlareMoRuntime,
+  getFlareMoAuth,
+  getFlareMoDb,
   type getOptionalRequestContext,
   type getRequestContext,
   type HonoBindings,
@@ -104,7 +105,7 @@ export function optionalTimestamp(value: unknown, field: string) {
 export async function getPublicInstanceContext(
   c: ConnectContext,
 ): Promise<ConnectRequestContext> {
-  const db = getFlareMoRuntime(c.env).db;
+  const db = getFlareMoDb(c.env);
   const user =
     (await getFlaremoUserCached(db, "users/owner")) ??
     publicOwnerFallback(c.env.FLAREMO_SINGLE_USER_NAME);
