@@ -23,7 +23,7 @@ import {
 import { insertMemosSseEvent } from "./memos-sse";
 import { findMentionedUsers, insertMemoNotification } from "./memos-user";
 import { insertMemosWebhookEvent } from "./memos-webhooks";
-import { assertMemoCountQuota } from "./quotas";
+import { assertMemoCountQuota, type QuotaScope } from "./quotas";
 import { extractTags, normalizeMemoTags } from "./tags";
 import { isActiveTeamMember, memoReadScope } from "./team-permissions";
 
@@ -64,6 +64,7 @@ export function createMemoComment(
   user: UserRow,
   parentMemoId: string,
   input: CreateMemoCommentInput,
+  scope?: QuotaScope,
 ): Promise<MemoRow>;
 export function createMemoComment(
   db: FlareMoDb,
@@ -77,6 +78,7 @@ export async function createMemoComment(
     | string
     | (CreateMemoCommentInput & { parentMemoName: string }),
   input?: CreateMemoCommentInput,
+  scope?: QuotaScope,
 ): Promise<MemoRow | { memo: MemoRow; parentName: string }> {
   const routeInput =
     typeof parentMemoOrInput === "string" ? undefined : parentMemoOrInput;
@@ -94,11 +96,17 @@ export async function createMemoComment(
   }
   // Comments are memos: they pass the same three gates as createMemo —
   // active membership, content ceiling, and the per-user memo count quota.
+  //
+  // The quota gate needs the caller's resolved limits. It used to be called
+  // with a literal `undefined` here, which `assertMemoCountQuota` reads as
+  // "no limit configured" and returns immediately — so the third gate was
+  // never actually applied to comments, and the note above described an intent
+  // the code did not implement. Callers now pass the scope through.
   if (!isActiveTeamMember(user)) {
     throw new ForbiddenError("Removed members cannot create memos.");
   }
   assertMemoContentSize(content);
-  await assertMemoCountQuota(db, undefined, user.id);
+  await assertMemoCountQuota(db, scope?.userLimits, user.id);
   const payload = normalizeMemoPayload(
     effectiveInput.comment?.payload ?? effectiveInput.payload,
   );
