@@ -68,7 +68,9 @@ export async function listMemosForViewer(
   options: MemoFilterOptions = {},
 ): Promise<MemoListResult> {
   const search = parseMemoSearchQuery(query.q);
-  const celFilter = compileMemoFilter(query.filter);
+  // Awaited: compiling a CEL expression now resolves the parser on demand,
+  // so a query without `filter` never loads it at all.
+  const celFilter = await compileMemoFilter(query.filter);
   const cursor = query.page_token
     ? decodePageToken(query.page_token, query.order_by)
     : undefined;
