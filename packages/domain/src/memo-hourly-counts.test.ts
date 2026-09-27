@@ -15,6 +15,7 @@ import {
   recalibrateAllHourlyCounts,
   utcHourOf,
 } from "./memo-hourly-counts";
+import { createMemoComment } from "./memos-comments";
 import { hardDeleteMemo } from "./memos-lifecycle";
 import { createDateKeyFormatter } from "./memos-query";
 import { getMemoStats } from "./memos-read";
@@ -303,6 +304,142 @@ describe("counter maintenance through the write paths", () => {
       },
     ]);
     expect((await readHourlyCountTotals(db, owner.id)).normal).toBe(2);
+  });
+});
+
+describe("comments move the counter", () => {
+  // A comment is a `memos` row with no column of its own, so every query that
+  // counts memos counts comments too. The counter has to agree with that or
+  // the sidebar under-reports every comment until the nightly rebuild — and a
+  // comment that is then trashed or deleted debits a unit it was never
+  // credited, which the `max(0, …)` floor absorbs by eating a real memo's
+  // count instead. That failure is silent, so it is pinned here.
+
+  it("credits a comment on creation", async () => {
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    const before = await readHourlyCountTotals(db, owner.id);
+
+    await createMemoComment(db, owner, parent.id, { content: "a comment" });
+
+    const after = await readHourlyCountTotals(db, owner.id);
+    expect(after.normal).toBe(before.normal + 1);
+    expect(after).toEqual(await liveTotals(owner.id));
+  });
+
+  it("credits a comment that carries tags", async () => {
+    // The tagged branch of `createMemoComment` is a separate `db.batch`, so it
+    // can drift independently of the plain one.
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    const before = await readHourlyCountTotals(db, owner.id);
+
+    await createMemoComment(db, owner, parent.id, {
+      content: "tagged comment #insight",
+    });
+
+    const after = await readHourlyCountTotals(db, owner.id);
+    expect(after.normal).toBe(before.normal + 1);
+    expect(after).toEqual(await liveTotals(owner.id));
+  });
+
+  it("keeps the parent memo's count when a comment is trashed", async () => {
+    // The regression this pins: the comment was never credited, so trashing it
+    // issued a debit against a counter that had no matching credit, and the
+    // floor silently zeroed the *parent's* count instead.
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    const comment = await createMemoComment(db, owner, parent.id, {
+      content: "a comment",
+    });
+
+    await updateMemo(db, owner, comment.id, { status: "trashed" });
+
+    const totals = await readHourlyCountTotals(db, owner.id);
+    expect(totals).toEqual(await liveTotals(owner.id));
+    expect(totals.normal).toBe(1); // the parent, still there
+    expect(totals.trashed).toBe(1); // the comment
+  });
+
+  it("restores a trashed comment back into the normal count", async () => {
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    const comment = await createMemoComment(db, owner, parent.id, {
+      content: "a comment",
+    });
+    await updateMemo(db, owner, comment.id, { status: "trashed" });
+    await updateMemo(db, owner, comment.id, { status: "normal" });
+
+    const totals = await readHourlyCountTotals(db, owner.id);
+    expect(totals).toEqual(await liveTotals(owner.id));
+    expect(totals.normal).toBe(2);
+    expect(totals.trashed).toBe(0);
+  });
+
+  it("removes a hard-deleted comment without disturbing the parent", async () => {
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    const comment = await createMemoComment(db, owner, parent.id, {
+      content: "a comment",
+    });
+
+    await hardDeleteMemo(db, owner, comment.id);
+
+    const totals = await readHourlyCountTotals(db, owner.id);
+    expect(totals).toEqual(await liveTotals(owner.id));
+    expect(totals.normal).toBe(1);
+  });
+
+  it("survives a mixed sequence of memos and comments", async () => {
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    const second = await createMemo(db, owner, {
+      content: "second",
+      visibility: "private",
+      source: "web",
+    });
+    const comment = await createMemoComment(db, owner, parent.id, {
+      content: "a comment",
+    });
+    await updateMemo(db, owner, second.id, { status: "archived" });
+    await updateMemo(db, owner, comment.id, { status: "trashed" });
+
+    const totals = await readHourlyCountTotals(db, owner.id);
+    expect(totals).toEqual(await liveTotals(owner.id));
+    expect(totals).toMatchObject({ normal: 1, archived: 1, trashed: 1 });
+  });
+
+  it("reports the same total through getMemoStats as a live scan", async () => {
+    const parent = await createMemo(db, owner, {
+      content: "parent",
+      visibility: "private",
+      source: "web",
+    });
+    await createMemoComment(db, owner, parent.id, { content: "a comment" });
+
+    const stats = await getMemoStats(db, owner, { time_zone: "UTC" });
+    const live = await liveTotals(owner.id);
+    expect(stats.counts.normal).toBe(live.normal);
+    expect(stats.counts.total).toBe(live.normal + live.archived);
+    expect(stats.active_days).toBe(live.activeDays);
   });
 });
 

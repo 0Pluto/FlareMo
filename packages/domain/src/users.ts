@@ -41,6 +41,7 @@ import {
   ValidationError,
 } from "./errors";
 import type { PlanLimits } from "./limits";
+import { recalibrateUserHourlyCounts } from "./memo-hourly-counts";
 import { assertMemberQuota } from "./quotas";
 import type { TeamRole } from "./team-permissions";
 
@@ -632,6 +633,18 @@ export async function finalizeFlaremoMemberRemoval(
     .update(memos)
     .set({ userId: "users/owner", clientId: null })
     .where(and(eq(memos.userId, userId), isNotNull(memos.teamId)));
+
+  // Both halves above move memos without touching `memo_hourly_counts`: the
+  // purge deletes rows, the adoption reassigns them. Rebuild the two affected
+  // counters rather than emitting per-memo adjustments — this runs once per
+  // member removal, and the removed member's own rows have to disappear
+  // entirely (the `users` row is only soft-deleted, so the FK cascade that
+  // would normally clear them never fires). Left to the nightly recalibration
+  // this would read as the owner undercounting and the removed member still
+  // counting memos that no longer exist.
+  const now = new Date().toISOString();
+  await recalibrateUserHourlyCounts(db, "users/owner", now);
+  await recalibrateUserHourlyCounts(db, userId, now);
 }
 
 /**

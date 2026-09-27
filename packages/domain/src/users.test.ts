@@ -11,6 +11,7 @@ import { Miniflare } from "miniflare";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { completeOwnerBootstrap, getViewerTeamMembership } from "./auth";
 import { ConflictError, ForbiddenError, ValidationError } from "./errors";
+import { readHourlyCountTotals } from "./memo-hourly-counts";
 import { createMemo } from "./memos";
 import type { TeamViewer } from "./team-permissions";
 import {
@@ -223,6 +224,11 @@ describe("team users", () => {
     expect(artifacts.memoIds).toEqual([privateMemo.id]);
     expect((await getFlaremoUserById(db, member.id))?.status).toBe("removed");
 
+    // Both memos belong to the member's counter until the removal runs.
+    expect(await readHourlyCountTotals(db, member.id)).toMatchObject({
+      normal: 2,
+    });
+
     await finalizeFlaremoMemberRemoval(db, member.id, artifacts);
     const adopted = await db
       .select()
@@ -233,6 +239,18 @@ describe("team users", () => {
     expect(await getFlaremoUserById(db, member.id)).toMatchObject({
       name: "Member",
       status: "removed",
+    });
+
+    // The private memo was deleted and the team memo was adopted, so the
+    // member's counter must be empty and the owner's must count the adopted
+    // memo. Left to the nightly rebuild, the owner under-reports and the
+    // removed member keeps counting memos that no longer exist.
+    expect(await readHourlyCountTotals(db, member.id)).toMatchObject({
+      normal: 0,
+      activeDays: 0,
+    });
+    expect(await readHourlyCountTotals(db, "users/owner")).toMatchObject({
+      normal: 1,
     });
   });
 
