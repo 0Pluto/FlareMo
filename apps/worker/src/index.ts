@@ -32,6 +32,7 @@ import { betterAuthRateLimitBucket, rateLimitGuard } from "./rate-limit";
 // original import path (./index) keeps serving it verbatim.
 export { runScheduledMaintenance } from "./scheduled-tasks";
 
+import { mountLazyRoute, mountLazySsrPages } from "./lazy-routes";
 import { accountApi } from "./routes/account-api";
 import { adminApi } from "./routes/admin-api";
 import { appApi } from "./routes/app-api";
@@ -54,7 +55,6 @@ import { publicApi } from "./routes/public-api";
 import { tasksApi } from "./routes/tasks-api";
 import { runScheduledMaintenance } from "./scheduled-tasks";
 import { isKnownFrontendPath } from "./spa-routes";
-import { mountLazyRoute, mountLazySsrPages } from "./lazy-routes";
 
 /**
  * Kernel assembly entry. Every call returns a fresh Hono instance so hosts
