@@ -133,7 +133,9 @@ export function WorkspaceLayout({
     return {
       hierarchy: tagHierarchyQuery.data?.tags ?? [],
       hierarchyPending: tagHierarchyQuery.isPending,
+      space: "all",
       stats,
+      timeZone,
       untagged: false,
       user: currentUserQuery.data,
       onDeleteTag: (tag) => deleteTag(tag),

@@ -23,6 +23,7 @@ import {
 } from "react";
 import {
   getCaptureStatus,
+  type MemoSpace,
   type MemoStatsResponse,
   type TagHierarchyNode,
 } from "@/api";
@@ -61,6 +62,10 @@ type FlareMoExplorerProps = {
   hierarchy: TagHierarchyNode[];
   hierarchyPending?: boolean;
   stats: MemoStatsResponse;
+  /** Viewer's IANA zone + space scope: the year view anchors its own stats
+   * query with them (issue #144). */
+  timeZone: string;
+  space?: MemoSpace;
   untagged?: boolean;
   onDeleteTag: (tag: string) => void;
   onRenameTag: (from: string, to: string) => void;
@@ -79,6 +84,8 @@ export const FlareMoExplorer = memo(function FlareMoExplorer({
   hierarchy,
   hierarchyPending = false,
   stats,
+  timeZone,
+  space,
   untagged = false,
   onDeleteTag,
   onRenameTag,
@@ -124,7 +131,9 @@ export const FlareMoExplorer = memo(function FlareMoExplorer({
         <FlareMoTimeHorizon
           hoveredDate={hoveredDate}
           monthLabels={monthLabels}
+          space={space}
           stats={stats}
+          timeZone={timeZone}
           streak={streak}
           onDaySelect={onDaySelect}
           onHoverDate={setHoveredDate}
