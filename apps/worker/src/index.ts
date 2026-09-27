@@ -36,7 +36,6 @@ import { mountLazyRoute, mountLazySsrPages } from "./lazy-routes";
 import { accountApi } from "./routes/account-api";
 import { adminApi } from "./routes/admin-api";
 import { appApi } from "./routes/app-api";
-import { articlesApi } from "./routes/articles-api";
 import { authApi } from "./routes/auth-api";
 import { brandingApi } from "./routes/branding-api";
 import { emailSettingsApi } from "./routes/email-settings-api";
@@ -242,13 +241,33 @@ export function createFlareMoApp(
   app.route("/api/app/admin", adminApi);
   app.route("/api/app/memory", memoryApi);
   app.route("/api/app/projects", projectsApi);
-  app.route("/api/app/articles", articlesApi);
+  // The articles API is a low-traffic tree with real sub-paths (`/:id`,
+  // `/:id/publish`, …), so the wildcard registration is required. Lazy mounting
+  // keeps the route module itself out of the isolate startup graph; the sub-app
+  // shape is the `app.route()` contract (paths relative to the mount prefix),
+  // which is what mountLazyRoute re-bases against.
+  mountLazyRoute(app, "/api/app/articles", async () => {
+    const { articlesApi } = await import("./routes/articles-api");
+    return articlesApi;
+  });
   app.route("/api/app/tasks", tasksApi);
   app.route("/api/app", appApi);
   app.route("/api/public", publicApi);
   // SSR public pages (share/article + sitemap/feed): the largest lazy win —
-  // marked/shiki-core/sitemap/feed/transliteration only parse when one of the
-  // five public page paths is actually requested.
+  // marked/shiki-core/sitemap/feed only parse when one of the five public page
+  // paths is actually requested.
+  //
+  // Route lazy-mounting cannot reach everything, though, and it is worth being
+  // precise about why. The `@flaremo/domain` barrel is statically imported by
+  // this file for half a dozen unrelated symbols, and a value `export *` keeps
+  // its whole subtree alive no matter which routes are lazy. So `cel-js` stays
+  // on the startup graph by way of `memo-filter/environment`. `transliteration`
+  // used to be pinned the same way, through `articles.ts`; that one is gone,
+  // but only because `articles.ts` now defers the `slugify` import to call time
+  // rather than because the route moved. Verified by walking the bundler's
+  // static-import edges, not by reading a sourcemap — a module's code staying
+  // in the uploaded file says nothing about whether it runs at startup.
+  // Issue #138.
   mountLazySsrPages(app);
   app.get("/favicon.ico", async (c) => {
     // Only browsers without a <link rel="icon"> hit this; redirect to the
