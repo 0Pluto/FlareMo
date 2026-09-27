@@ -232,6 +232,13 @@
       "when": 1790469825392,
       "tag": "0032_omniscient_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1790479307026,
+      "tag": "0033_large_multiple_man",
+      "breakpoints": true
     }
   ]
 }
