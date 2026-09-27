@@ -225,6 +225,13 @@
       "when": 1789886400000,
       "tag": "0031_memory_ledger_followup",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1790469825392,
+      "tag": "0032_omniscient_energizer",
+      "breakpoints": true
     }
   ]
 }

@@ -466,6 +466,30 @@ export async function getMemoByIdForViewer(
   return row;
 }
 
+/**
+ * Batched sibling of {@link getMemoByIdForViewer}: resolve many memo ids under
+ * the same read scope in one query. Callers that previously looped the
+ * single-id helper can now hydrate relations and related memos from a map; a
+ * missing key means exactly what the single-id helper's NotFoundError meant.
+ */
+export async function getMemosByIdsForViewer(
+  db: FlareMoDb,
+  user: TeamViewer | null,
+  ids: string[],
+  options: { includeDeleted?: boolean } = {},
+): Promise<Map<string, MemoRow>> {
+  if (ids.length === 0) return new Map();
+  const filters = [inArray(memos.id, ids), memoReadScope(user)];
+  if (!options.includeDeleted) {
+    filters.push(inArray(memos.status, ["normal", "archived", "trashed"]));
+  }
+  const rows = await db
+    .select()
+    .from(memos)
+    .where(and(...filters.filter(Boolean)));
+  return new Map(rows.map((row) => [row.id, row] as const));
+}
+
 export async function getMemoByClientId(
   db: FlareMoDb,
   userId: string,
