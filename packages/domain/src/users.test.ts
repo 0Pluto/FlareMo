@@ -3,6 +3,7 @@ import {
   authUsers,
   createDb,
   memos,
+  memoTags,
   type UserRow,
   users,
 } from "@flaremo/db";
@@ -215,7 +216,7 @@ describe("team users", () => {
       source: "web",
     });
     const teamMemo = await createMemo(db, member.viewer, {
-      content: "team",
+      content: "team #adopted",
       visibility: "protected",
       source: "web",
     });
@@ -252,6 +253,17 @@ describe("team users", () => {
     expect(await readHourlyCountTotals(db, "users/owner")).toMatchObject({
       normal: 1,
     });
+
+    // The adopted memo's tag row has to follow it. `memo_tags.user_id` is
+    // denormalized from the author, and the fast-path tag query filters on it
+    // while `counts` filters on `memos.user_id` — leaving them apart makes the
+    // owner see the adopted memo in `counts` but not in `tags`.
+    const adoptedTag = await db
+      .select()
+      .from(memoTags)
+      .where(eq(memoTags.memoId, teamMemo.id))
+      .get();
+    expect(adoptedTag).toMatchObject({ userId: "users/owner", tag: "adopted" });
   });
 
   it("supports assigning and removing the team administrator role", async () => {

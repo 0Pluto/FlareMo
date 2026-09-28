@@ -629,10 +629,35 @@ export async function finalizeFlaremoMemberRemoval(
   // Adopt the removed member's team/public memos. The client id is dropped
   // with the old owner so the owner's `(user_id, client_id)` idempotency
   // index can never conflict.
-  await db
-    .update(memos)
-    .set({ userId: "users/owner", clientId: null })
+  //
+  // The ids are read before the update rather than in a subquery inside the
+  // same batch: statements in one batch must not depend on each other's
+  // effects, and this batch reassigns the very rows the tag filter selects on.
+  const adoptedMemoRows = await db
+    .select({ id: memos.id })
+    .from(memos)
     .where(and(eq(memos.userId, userId), isNotNull(memos.teamId)));
+  const adoptedMemoIds = adoptedMemoRows.map((row) => row.id);
+
+  // `memo_tags.user_id` is denormalized from the memo's author, so the
+  // adopted memos' tag rows have to move with them: the fast-path tag query
+  // filters on `memo_tags.user_id` while every other number filters on
+  // `memos.user_id`, and leaving them apart makes the owner see adopted memos
+  // in `counts` but not in `tags`. The `(memo_id, tag)` primary key and the
+  // `memo_tags_user_tag_memo_idx` both start with `user_id`, so the migration
+  // keeps the index usable.
+  if (adoptedMemoIds.length > 0) {
+    await db.batch([
+      db
+        .update(memos)
+        .set({ userId: "users/owner", clientId: null })
+        .where(inArray(memos.id, adoptedMemoIds)),
+      db
+        .update(memoTags)
+        .set({ userId: "users/owner" })
+        .where(inArray(memoTags.memoId, adoptedMemoIds)),
+    ]);
+  }
 
   // Both halves above move memos without touching `memo_hourly_counts`: the
   // purge deletes rows, the adoption reassigns them. Rebuild the two affected
