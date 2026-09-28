@@ -52,7 +52,9 @@ test("the owner can customize the product name and it reaches the login page", a
   // and landed on the workspace instead of the login page. Match the brand by
   // text rather than `getByRole("complementary")`: an <aside> nested inside
   // <main> is not exposed as a complementary landmark.
-  const anonymousContext = await browser.newContext({ storageState: undefined });
+  const anonymousContext = await browser.newContext({
+    storageState: undefined,
+  });
   const anonymousPage = await anonymousContext.newPage();
   await anonymousPage.goto(`${E2E_BASE_URL}/login`);
   await expect(
@@ -111,7 +113,9 @@ test("the owner picks an accent preset and it applies across sessions", async ({
   // `storageState` must be cleared explicitly — the project's `use` block sets
   // the owner's state and Playwright applies it to every context the test
   // creates.
-  const anonymousContext = await browser.newContext({ storageState: undefined });
+  const anonymousContext = await browser.newContext({
+    storageState: undefined,
+  });
   const anonymousPage = await anonymousContext.newPage();
   await anonymousPage.goto(`${E2E_BASE_URL}/login`);
   await expect(anonymousPage.locator("html")).toHaveAttribute(
@@ -176,7 +180,9 @@ test("the owner derives a theme from a custom hex seed", async ({
   await ownerPage.waitForTimeout(900);
   // Anonymous again: the project's `use` block would otherwise sign this
   // context in, so clear the inherited state explicitly.
-  const anonymousContext = await browser.newContext({ storageState: undefined });
+  const anonymousContext = await browser.newContext({
+    storageState: undefined,
+  });
   const anonymousPage = await anonymousContext.newPage();
   await anonymousPage.goto(`${E2E_BASE_URL}/login`);
   await expect(anonymousPage.locator("html")).toHaveAttribute(

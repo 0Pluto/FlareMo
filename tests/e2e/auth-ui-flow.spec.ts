@@ -176,4 +176,3 @@ test("adds a member through the admin dialog and shows the activation link", asy
   // orphaned second row was created behind the error message.
   await expect(memberCount).toHaveText(memberCountAfterCreate ?? "");
 });
-
