@@ -156,6 +156,7 @@ const messages = {
   "nav.dailyReview": "あの日の記録",
   "nav.randomWalk": "記憶の旅",
   "nav.memory": "メモリー",
+  "nav.teamProjects": "Team projects",
   "nav.projects": "プロジェクト",
   "nav.capture": "音声メモ",
   "capture.title": "音声メモ",

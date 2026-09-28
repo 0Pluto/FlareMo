@@ -104,6 +104,11 @@ const MemoryPage = lazy(() =>
     default: module.MemoryPage,
   })),
 );
+const TeamProjectsPage = lazy(() =>
+  import("@/pages/team-projects-page").then((module) => ({
+    default: module.TeamProjectsPage,
+  })),
+);
 const ProjectsPage = lazy(() =>
   import("@/pages/projects-page").then((module) => ({
     default: module.ProjectsPage,
@@ -430,6 +435,55 @@ const projectsRoute = createRoute({
   },
 });
 
+function TeamProjectsRoutePage() {
+  return (
+    <AuthenticatedRoute>
+      <Suspense fallback={<RouteLoading />}>
+        <TeamProjectsPage />
+      </Suspense>
+    </AuthenticatedRoute>
+  );
+}
+
+const teamProjectsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/team-projects",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    project?: string;
+    edit?: boolean;
+    new?: string;
+    view?: string;
+    member?: string;
+    phase?: string;
+    q?: string;
+    owner?: string;
+    group?: string;
+  } => {
+    const value = (key: string) => {
+      const raw = search[key];
+      return typeof raw === "string" || typeof raw === "number"
+        ? String(raw)
+        : undefined;
+    };
+    return {
+      project: value("project"),
+      edit: [true, 1, "1", "true"].includes(
+        search.edit as string | number | boolean,
+      ),
+      new: value("new"),
+      view: value("view"),
+      member: value("member"),
+      phase: value("phase"),
+      q: value("q"),
+      owner: value("owner"),
+      group: value("group"),
+    };
+  },
+  component: TeamProjectsRoutePage,
+});
+
 function CaptureRoutePage() {
   return (
     <AuthenticatedRoute>
@@ -510,6 +564,7 @@ const router = createRouter({
     randomWalkRoute,
     memoryRoute,
     projectsRoute,
+    teamProjectsRoute,
     captureRoute,
     articlesRoute,
     articleEditRoute,
