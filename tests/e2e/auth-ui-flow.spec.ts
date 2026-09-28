@@ -87,6 +87,7 @@ test("adds a member through the admin dialog and shows the activation link", asy
   page,
 }) => {
   const memberName = `E2E Member ${Date.now()}`;
+  const email = `e2e.member.${Date.now()}@example.test`;
   await page.goto("/account");
   await page.getByRole("button", { name: /团队管理|Team/ }).click();
   await expect(
@@ -103,9 +104,7 @@ test("adds a member through the admin dialog and shows the activation link", asy
   await dialog
     .getByRole("textbox", { name: /显示名称|Display name/i })
     .fill(memberName);
-  await dialog
-    .getByRole("textbox", { name: /^邮箱$|^Email$/i })
-    .fill(`e2e.member.${Date.now()}@example.test`);
+  await dialog.getByRole("textbox", { name: /^邮箱$|^Email$/i }).fill(email);
   await dialog.getByRole("button", { name: /添加成员|Add member/i }).click();
 
   // Success shows the one-time activation link inside the dialog.
@@ -118,4 +117,30 @@ test("adds a member through the admin dialog and shows the activation link", asy
   // Only the settings modal itself remains open.
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await expect(page.getByText(memberName)).toBeVisible();
+
+  // Re-adding the same address must name the real cause instead of failing
+  // with a generic server error, and the member list must not grow a second
+  // row for it.
+  await page
+    .getByRole("button", { name: /添加成员|Add member/i })
+    .first()
+    .click();
+  const duplicateDialog = page.getByRole("dialog").last();
+  await duplicateDialog
+    .getByRole("textbox", { name: /显示名称|Display name/i })
+    .fill(`${memberName} again`);
+  await duplicateDialog
+    .getByRole("textbox", { name: /^邮箱$|^Email$/i })
+    .fill(email);
+  await duplicateDialog
+    .getByRole("button", { name: /添加成员|Add member/i })
+    .click();
+  await expect(
+    duplicateDialog.getByText(/已被使用|already in use/i),
+  ).toBeVisible();
+  await duplicateDialog
+    .locator('[data-slot="dialog-footer"]')
+    .getByRole("button", { name: /^取消$|^Cancel$/i })
+    .click();
+  await expect(page.getByText(memberName)).toHaveCount(1);
 });

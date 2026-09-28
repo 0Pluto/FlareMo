@@ -126,6 +126,7 @@ const messages = {
   "search.syntaxHint":
     "필터: has:attachment · is:pinned · before:2026-07-01 · after:2026-07-01 · in:archive",
   "common.clearFilters": "필터 지우기",
+  "common.emailInUse": "이미 사용 중인 이메일입니다. 다른 주소를 사용하세요.",
   "filter.clearDate": "이 날짜 필터 해제",
   "common.save": "저장",
   "common.cancel": "취소",

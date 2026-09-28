@@ -118,7 +118,7 @@ export function registerUsersRoutes(app: Hono<HonoBindings>) {
       return c.json(
         {
           id: member.id,
-          email: input.email,
+          email: member.email,
           name: member.name,
           username,
           role: "member" as const,

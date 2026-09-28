@@ -33,7 +33,17 @@ import {
   usageCounters,
   users,
 } from "@flaremo/db";
-import { and, asc, count, eq, inArray, isNotNull, ne, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   ConflictError,
   ForbiddenError,
@@ -163,7 +173,7 @@ export async function ensureSingleUser(
 
   const row = {
     id,
-    email: config.email,
+    email: config.email.trim().toLowerCase(),
     name: config.name,
     avatarUrl: null,
     status: "active" as const,
@@ -187,6 +197,15 @@ export async function getFlaremoUserById(
  * accounts. IDs are `users/<uuid>`: `memosSubjectForFlaremoUserId` already
  * hashes non-numeric ids deterministically and the link table keeps the
  * auth identity separate, so no counter table is required.
+ *
+ * The address is stored lowercased and an occupied address fails as a typed
+ * conflict. Both matter because the identity is created before this row:
+ * Better Auth answers a duplicate with a synthetic, unpersisted user when
+ * `autoSignIn` is off, so this insert — not the sign-up call — is where a
+ * collision surfaces. Left to the unique index it would raise a bare driver
+ * error with no status (a 500 on every surface), and a differently-cased
+ * duplicate would pass the byte-wise index only to fail on the link insert
+ * while leaving the orphaned `users` row behind.
  */
 export async function createFlaremoMember(
   db: FlareMoDb,
@@ -194,9 +213,13 @@ export async function createFlaremoMember(
 ): Promise<UserRow> {
   const id = `users/${crypto.randomUUID()}`;
   const now = new Date().toISOString();
+  const email = config.email.trim().toLowerCase();
+  if (await isFlaremoUserEmailTaken(db, email)) {
+    throw new ConflictError("That email is already in use.");
+  }
   const row = {
     id,
-    email: config.email,
+    email,
     name: config.name,
     avatarUrl: null,
     status: "active" as const,
@@ -673,15 +696,11 @@ export async function finalizeFlaremoMemberRemoval(
 }
 
 /**
- * Update the FlareMo domain user's email in the business `users` table. The
- * caller is responsible for updating the Better Auth `auth_users` credential
- * and for any prior identity verification; this service only keeps the domain
- * copy in sync and enforces the table's unique-email constraint. The email is
- * normalized to lowercase so the two unique email columns stay comparable.
- */
-/**
- * Whether the business `users` table already holds this (lowercased) email.
- * Used for early conflict feedback on email-change requests; the authoritative
+ * Whether the business `users` table already holds this email, compared
+ * case-insensitively. The unique index compares bytes, so rows written before
+ * addresses were normalized to lowercase still exist; matching on `lower()`
+ * keeps those rows authoritative instead of letting a differently-cased
+ * duplicate slip through to fail later on the link insert. The authoritative
  * unique-constraint enforcement stays inside updateFlaremoUserEmail.
  */
 export async function isFlaremoUserEmailTaken(
@@ -691,11 +710,18 @@ export async function isFlaremoUserEmailTaken(
 ): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
   const taken = await db.query.users.findFirst({
-    where: eq(users.email, normalized),
+    where: sql`lower(${users.email}) = ${normalized}`,
   });
   return Boolean(taken && taken.id !== excludeUserId);
 }
 
+/**
+ * Update the FlareMo domain user's email in the business `users` table. The
+ * caller is responsible for updating the Better Auth `auth_users` credential
+ * and for any prior identity verification; this service only keeps the domain
+ * copy in sync and enforces the table's unique-email constraint. The email is
+ * normalized to lowercase so the two unique email columns stay comparable.
+ */
 export async function updateFlaremoUserEmail(
   db: FlareMoDb,
   user: UserRow,
@@ -705,10 +731,7 @@ export async function updateFlaremoUserEmail(
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new ValidationError("A valid email address is required.");
   }
-  const taken = await db.query.users.findFirst({
-    where: eq(users.email, email),
-  });
-  if (taken && taken.id !== user.id) {
+  if (await isFlaremoUserEmailTaken(db, email, user.id)) {
     throw new ConflictError("That email is already in use.");
   }
   await db

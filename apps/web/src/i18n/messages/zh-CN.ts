@@ -118,6 +118,7 @@ const messages = {
   "search.syntaxHint":
     "筛选：has:attachment · is:pinned · before:2026-07-01 · after:2026-07-01 · in:archive",
   "common.clearFilters": "清除筛选",
+  "common.emailInUse": "该邮箱已被使用，请换一个。",
   "filter.clearDate": "清除这一天的筛选",
   "common.save": "保存",
   "common.cancel": "取消",

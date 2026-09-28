@@ -123,6 +123,7 @@ const messages = {
   "search.syntaxHint":
     "المرشّحات: has:attachment · is:pinned · before:2026-07-01 · after:2026-07-01 · in:archive",
   "common.clearFilters": "مسح المرشّحات",
+  "common.emailInUse": "هذا البريد مستخدم بالفعل. استخدم بريدًا آخر.",
   "filter.clearDate": "إزالة مرشّح هذا اليوم",
   "common.save": "حفظ",
   "common.cancel": "إلغاء",

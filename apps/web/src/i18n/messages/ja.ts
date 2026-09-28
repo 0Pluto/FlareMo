@@ -124,6 +124,7 @@ const messages = {
   "search.syntaxHint":
     "フィルター：has:attachment · is:pinned · before:2026-07-01 · after:2026-07-01 · in:archive",
   "common.clearFilters": "フィルターをクリア",
+  "common.emailInUse": "このメールアドレスは既に使用されています。",
   "filter.clearDate": "この日のフィルターを解除",
   "common.save": "保存",
   "common.cancel": "キャンセル",

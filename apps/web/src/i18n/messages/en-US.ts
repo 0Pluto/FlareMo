@@ -125,6 +125,7 @@ const messages = {
   "search.syntaxHint":
     "Filters: has:attachment · is:pinned · before:2026-07-01 · after:2026-07-01 · in:archive",
   "common.clearFilters": "Clear filters",
+  "common.emailInUse": "That email is already in use. Use a different one.",
   "filter.clearDate": "Clear the day filter",
   "common.save": "Save",
   "common.cancel": "Cancel",

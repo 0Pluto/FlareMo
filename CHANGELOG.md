@@ -6,6 +6,7 @@ FlareMo 使用 SemVer。每个 release 都要写清楚升级影响、Cloudflare 
 
 - 接线 `flaremo-data-export` Queue：绑定后 `POST /api/v1/export/tasks` 投递 `{taskId}` 并立即返回 queued，由 queue 消费端与 scheduled maintenance 共用的同一幂等 executor 执行导出；未绑定 Queue 的部署维持请求内执行不变。cron 兜底（stale 任务过期标记 + 过期产物清理）语义不变。
 - Memos 兼容面错误处理收口：`/api/v1` current REST 与 social 树的 `{code, message, details}` 错误信封合并为单份实现，`CompatValidationError` 与非法 JSON body 现在正确映射 400（此前会落 500）。
+- 重复邮箱身份修复（`/api/app/*`）：添加成员、修改邮箱使用一个已被占用的地址时，此前会落到 `users`/`auth_users` 唯一索引的裸驱动错误上，返回 500 `Internal server error`——真实原因只在日志里。现在由 domain 层统一判定为 409 `That email is already in use.`，前端映射为本地化文案；同时邮箱在写入 domain 表时归一化为小写并做大小写不敏感占用比较，堵掉「大小写变体绕过字节唯一索引、进而留下一条无团队归属的孤儿成员记录」的路径。附带两处收口：`jsonError` 现在保留框架异常（Better Auth 等）自带的 4xx 与其可读文案，不再一律压成 500（仅 4xx 生效，5xx 与无状态错误仍返回泛化文案，避免内部细节外泄）；该 4xx 分类逻辑从 Memos 兼容面提取为单一共用实现。**状态码变更**：修改邮箱撞已占用地址从 400 改为 409（`/api/app/*` 自有面，仅前端消费）。
 - 依赖与配置卫生：`wrangler.jsonc.example` 的 `run_worker_first` 补齐 worker 渲染路径（/article、/share、feed、sitemap、favicon），与 `wrangler.json` 和 dev:hot 代理对齐。
 
 ## v0.20.1
