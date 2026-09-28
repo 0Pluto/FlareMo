@@ -2,12 +2,71 @@
 
 FlareMo 使用 SemVer。每个 release 都要写清楚升级影响、Cloudflare 资源变化和 Memos 兼容面变化。
 
-## Unreleased
+## v0.21.0
 
-- 接线 `flaremo-data-export` Queue：绑定后 `POST /api/v1/export/tasks` 投递 `{taskId}` 并立即返回 queued，由 queue 消费端与 scheduled maintenance 共用的同一幂等 executor 执行导出；未绑定 Queue 的部署维持请求内执行不变。cron 兜底（stale 任务过期标记 + 过期产物清理）语义不变。
-- Memos 兼容面错误处理收口：`/api/v1` current REST 与 social 树的 `{code, message, details}` 错误信封合并为单份实现，`CompatValidationError` 与非法 JSON body 现在正确映射 400（此前会落 500）。
-- 重复邮箱身份修复（`/api/app/*`）：添加成员、修改邮箱使用一个已被占用的地址时，此前会落到 `users`/`auth_users` 唯一索引的裸驱动错误上，返回 500 `Internal server error`——真实原因只在日志里。现在由 domain 层统一判定为 409 `That email is already in use.`，前端映射为本地化文案；同时邮箱在写入 domain 表时归一化为小写并做大小写不敏感占用比较，堵掉「大小写变体绕过字节唯一索引、进而留下一条无团队归属的孤儿成员记录」的路径。附带两处收口：`jsonError` 现在保留框架异常（Better Auth 等）自带的 4xx 与其可读文案，不再一律压成 500（仅 4xx 生效，5xx 与无状态错误仍返回泛化文案，避免内部细节外泄）；该 4xx 分类逻辑从 Memos 兼容面提取为单一共用实现。**状态码变更**：修改邮箱撞已占用地址从 400 改为 409（`/api/app/*` 自有面，仅前端消费）。
-- 依赖与配置卫生：`wrangler.jsonc.example` 的 `run_worker_first` 补齐 worker 渲染路径（/article、/share、feed、sitemap、favicon），与 `wrangler.json` 和 dev:hot 代理对齐。
+记忆账本与启动性能版本：Harness 适配落地（ZCode / Codex / Antigravity 插件 + 本地核心 + 原生记忆搬家）、记忆账本 v2 领域层与审核减负、Horizon 天文表盘、Workspace 统一布局，以及一轮幅度很大的 Worker 启动图瘦身。**这是自 v0.20.1 以来的 81 个提交的合并发布，含 4 个新 migration（纯新增 + 回填，向后兼容）。**
+
+### 新增与改进
+
+- **记忆账本 v2**：事实键版本断代、证据链、双时态与混合召回；接入层与 CLI（裁决/复原/版本链端点、`memory_compile` 工具、退出码契约）；v2.4 审核减负（AI 提炼默认直接生效、一眼扫替代逐条裁决、seed 直生效）；键槽口径对齐唯一索引，提案不占位、不被误退位。
+- **Harness 适配（P0 替换式）**：ZCode / Codex / Antigravity 插件、本地核心与原生记忆搬家，另含 Pi Agent 进程内扩展；导入遇瞬时不可达会退避重试。
+- **Web**：独立子页收敛为持久 Workspace 布局；记忆项目面板、FilterPill 与设计系统对齐；Horizon 天文表盘（12 小时表盘、月/周/年视图深度对齐、卫星光子）。
+- **导出走 Queue**：绑定 `flaremo-data-export` 后 `POST /api/v1/export/tasks` 投递 `{taskId}` 并立即返回 queued，由 queue 消费端与 scheduled maintenance 共用的同一幂等 executor 执行导出；未绑定 Queue 的部署维持请求内执行不变。cron 兜底（stale 任务过期标记 + 过期产物清理）语义不变。
+
+### 性能
+
+- **Worker 启动图**：静态可达模块 1229 → 488、源码 5.87 → 2.54 MiB（约 -57%）。移出启动图的有 Better Auth 全簇、kysely、@noble、jose、@bufbuild（Connect protobuf）、cel-js、transliteration、fflate、shiki，以及 articles / SSR 公开页 / MCP / 采集四块路由树的入口态惰性化。可用 `pnpm startup-graph` 持续度量。
+- **D1 读放大**：新增按「作者 + UTC 小时 + 当前 status」分桶的聚合表 `memo_hourly_counts`，`stats` 的 `counts` / `active_days` / `activity` 三项与写入路径的 memo 配额检查不再扫 `memos` 全表；成本从「随 memo 总数增长」变为「随实际有活动的 UTC 小时数增长」。`tags` 字段与带 space 分区的查询仍是实时扫表（见 `docs/deploy.md` 的覆盖范围表）。
+- **其他**：记忆分页与批量水合、认证单查、import 与 webhook 串行往返收拢为 `inArray` + `db.batch`、前端首屏减重（ShareImageDialog / 插件 payload 懒加载 + i18n 按需语言包）。
+
+### 修复
+
+- **重复邮箱身份修复（`/api/app/*`）**：添加成员、修改邮箱使用一个已被占用的地址时，此前会落到 `users` / `auth_users` 唯一索引的裸驱动错误上，返回 500 `Internal server error`——真实原因只在日志里。现在由 domain 层统一判定为 409 `That email is already in use.`，前端映射为本地化文案；邮箱在写入 domain 表时归一化为小写并做大小写不敏感占用比较，堵掉「大小写变体绕过字节唯一索引、进而留下一条无团队归属的孤儿成员记录」的路径。`jsonError` 同时收口：保留框架异常（Better Auth 等）自带的 4xx 与其可读文案，不再一律压成 500（仅 4xx 生效，5xx 与无状态错误仍返回泛化文案，避免内部细节外泄）。**状态码变更**：修改邮箱撞已占用地址从 400 改为 409（`/api/app/*` 自有面，仅前端消费）。
+- **聚合表一致性**：评论创建与成员移除此前会写坏 `memo_hourly_counts`；聚合表重算会撞穿 D1 的 100 绑定参数上限，导致夜间校准从未真正生效——两者均已修复。
+- **Memos 兼容面错误处理收口**：`/api/v1` current REST 与 social 树的 `{code, message, details}` 错误信封合并为单份实现；`CompatValidationError` 与非法 JSON body 现在正确映射 400（此前会落 500）。
+- **评论创建的 memo 配额检查此前从未生效**；编辑 memo 时从新内容重新提取标签；年视图按导航年份锚定活动窗口、热力图年视图请求 366 天窗口；跳年笔记的绝对时间补上年份。
+- **Web**：服务端拒绝退出时不再假装已退出；403 不再误报「登录状态已失效」，Origin 不受信时给出明确提示；侧栏跳时间线补全 search 参数；窗口聚焦时的全量重拉导致的列表重放动画已停止（全局 staleTime 30s + 关闭 refetchOnWindowFocus）。
+- **分享卡**：长文本自适应高度、段落间距收紧、容器不再溢出裁切；视频内联播放的 403 已修（video.twimg.com 按 Referer 白名单防盗链）。
+- **备份/恢复**：`memo_hourly_counts` 此前未登记持久化清单，导致恢复演练既不覆盖也不校验它——现已归类为可重建表，并在恢复时从 `memos` 直接重算（不重放陈旧计数）。恢复清单另补记忆账本三张新表。恢复脚本的 R2 bucket 校验改为从 `wrangler.jsonc` 读取绑定名（此前硬编码 `flaremo-attachments`，任何自定义 bucket 名的部署都会卡在发布门禁上）。
+
+### Memos 兼容面变化
+
+- current REST 与 social 树的错误信封合并为单份实现；非法 JSON body 与 `CompatValidationError` 由 500 归位 400。
+- Connect 与 current 面的注册路径同样受重复邮箱修复影响（域层统一判定）。
+- 兼容子集范围未扩大：仍不主张完整 Memos Server parity。
+
+### 数据库 migration
+
+- `0030_memory_ledger_v2`：新增 `memory_evidence`、`memory_events`、`memory_rejections` 三表 + `memory_items` 的 `(user_id, scope_type, scope_key, fact_key)` 索引。
+- `0031_memory_ledger_followup`：新增 `memory_compile_archives`；删除 `memory_items_user_fingerprint_idx`（已被 0030 的复合索引取代）。
+- `0032_omniscient_energizer`：新增两个部分索引（推理待审扫描、向量回收扫描）。
+- `0033_large_multiple_man`：新增 `memo_hourly_counts` 聚合并从 `memos` 回填（用 `strftime` 打 ISO 时间戳，避免被下一次校准误判为陈旧墓碑而删除）。
+- 全部为**纯新增 + 回填**，向后兼容上一正式版本的 Worker；自动部署会先迁移再发布。
+
+### Cloudflare 资源变化
+
+- 可选新增 Queue：`flaremo-data-export`（binding `DATA_EXPORT_QUEUE`）。不绑定则该能力维持旧的请求内执行，无需强制创建。
+- `wrangler.jsonc.example` 的 `assets.run_worker_first` 补齐 worker 渲染路径（`/article/*`、`/share/*`、`/feed.xml`、`/sitemap.xml`、`/sitemap-articles.xml`、`/favicon.ico`）。**自托管升级需同步自己的 `wrangler.jsonc`**，否则这些路径会落回 SPA fallback。
+- 无 R2 / D1 / Vectorize 资源的新增或改名。
+
+### Better Auth 应用认证变化
+
+- 无 cookie session、bootstrap、注册开关、PAT 前缀或撤销行为的变化。
+- 新增的重复邮箱判定改变了「修改邮箱撞已占用地址」的状态码（400 → 409）与「添加成员撞已占用邮箱」的响应（500 → 409），均为 `/api/app/*` 自有面。
+- `FLAREMO_PUBLIC_URL`、`FLAREMO_TRUSTED_ORIGINS` 与各 secret 的配置要求不变。
+
+### 升级步骤
+
+1. 备份 D1 与 R2（认证表在恢复清单内）。
+2. 同步自己的 `wrangler.jsonc`：补 `run_worker_first` 路径；如需队列导出能力，创建 `flaremo-data-export` 并加 `DATA_EXPORT_QUEUE` 绑定。
+3. 部署（自动先应用 migration 再发布 Worker）。
+4. 升级后无需手动操作：聚合表已在迁移里回填，夜间校准会继续自愈。
+
+### 已知问题
+
+- `tags` 字段与带 space 分区的 stats 查询仍是实时扫表；D1 免费套餐下高频调用 `/api/app/stats` 仍可能触顶每日行数预算（估算方法与量级换算见 `docs/deploy.md`）。
+- 仓库内仍有 44 条 biome warning（未使用导入/变量、可选链风格、非空断言等），非门禁项，不影响发布。
+- 兼容面仍未覆盖完整 CEL、完整上游 webhook 事件/egress 语义、完整多用户 ACL、原生 JWT parity，第三方客户端 smoke test 仍未完成。
 
 ## v0.20.1
 

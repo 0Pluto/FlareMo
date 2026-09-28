@@ -162,6 +162,9 @@ export function WorkspaceLayout({
     tagHierarchyQuery.data,
     tagHierarchyQuery.isPending,
     stats,
+    // Read into the sidebar content below; omitting it left the sidebar on a
+    // stale zone after the viewer changed their time zone.
+    timeZone,
     currentUserQuery.data,
     deleteTagMutation.mutate,
     renameTagMutation.mutate,
