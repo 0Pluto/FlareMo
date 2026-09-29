@@ -469,9 +469,15 @@ const teamProjectsRoute = createRoute({
     };
     return {
       project: value("project"),
+      // Only ever emit `edit` when it is on. Writing `false` here made the
+      // router serialize `edit=false` into the URL on every visit, which changed
+      // the address the auth guard had just captured as the post-sign-in
+      // destination (and added noise to otherwise clean deep links).
       edit: [true, 1, "1", "true"].includes(
         search.edit as string | number | boolean,
-      ),
+      )
+        ? true
+        : undefined,
       new: value("new"),
       view: value("view"),
       member: value("member"),
