@@ -295,23 +295,21 @@ test("serves the transcript audio on the public share page", async ({
   await page.goto(`/share/${token}`);
   // /share/:token is the Worker's SSR page, not the SPA's reading view: it
   // renders a native <audio controls> element rather than the sticky
-  // ReadingAudioBar, so there is no `reading-time` testid here. Assert the
-  // audio actually loads and reports a real duration.
+  // ReadingAudioBar, so there is no `reading-time` testid here. The element is
+  // deliberately `preload="none"` (no media fetch until the visitor presses
+  // play), so duration stays unset by design — assert the control exists and
+  // that its source really serves the shared attachment.
   const audio = page.locator("audio");
   await expect(audio).toBeVisible();
-  await page.waitForFunction(
-    () => {
-      const element = document.querySelector("audio");
-      return (
-        element !== null &&
-        element.readyState >= 1 &&
-        Number.isFinite(element.duration) &&
-        element.duration > 0
-      );
-    },
-    undefined,
-    { timeout: 15_000 },
+  const src = await audio.getAttribute("src");
+  expect(src).toMatch(
+    /^\/api\/public\/shares\/[^/]+\/attachments\/[^/]+\/blob$/,
   );
+
+  const blob = await request.get(src as string);
+  expect(blob.ok()).toBe(true);
+  expect(blob.headers()["content-type"]).toContain("audio/");
+  expect((await blob.body()).byteLength).toBeGreaterThan(0);
 });
 
 test("seeds the player duration from the attachment payload", async ({
