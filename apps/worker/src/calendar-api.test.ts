@@ -167,7 +167,7 @@ describe("FlareMo calendar API", () => {
     expect(weekly).toBeDefined();
     await json(
       await fetchApp(
-        `http://flaremo.test/api/app/tasks/${bareId(weekly!.id)}`,
+        `http://flaremo.test/api/app/tasks/${bareId(weekly?.id)}`,
         {
           method: "PATCH",
           headers: { "content-type": "application/json" },

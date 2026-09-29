@@ -73,8 +73,8 @@ async function createMember(
     authUserId,
     viewer: {
       ...member,
-      teamRole: membership!.role,
-      teamOrganizationId: membership!.organizationId,
+      teamRole: membership?.role,
+      teamOrganizationId: membership?.organizationId,
     },
   };
 }
@@ -148,7 +148,7 @@ describe("team users", () => {
       visibility: "protected",
       source: "web",
     });
-    expect(teamMemo.teamId).toBe(team!.id);
+    expect(teamMemo.teamId).toBe(team?.id);
 
     const personalMemo = await createMemo(db, member.viewer, {
       content: "personal",

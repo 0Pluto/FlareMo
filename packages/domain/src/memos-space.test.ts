@@ -163,26 +163,26 @@ describe("listMemosForViewer space scoping", () => {
 });
 
 describe("space-scoped stats and tags", () => {
-  let ownPrivate: string;
-  let ownTeam: string;
-  let otherTeam: string;
+  let _ownPrivate: string;
+  let _ownTeam: string;
+  let _otherTeam: string;
 
   beforeEach(async () => {
-    ownPrivate = (
+    _ownPrivate = (
       await createMemo(db, member, {
         content: "personal #space-tags",
         visibility: "private",
         source: "web",
       })
     ).id;
-    ownTeam = (
+    _ownTeam = (
       await createMemo(db, member, {
         content: "own team #space-tags",
         visibility: "protected",
         source: "web",
       })
     ).id;
-    otherTeam = (
+    _otherTeam = (
       await createMemo(db, owner, {
         content: "owner team #space-tags",
         visibility: "protected",
