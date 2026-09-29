@@ -20,8 +20,19 @@ export function searchTrigger(page: Page) {
  * Pressing Enter with a non-empty draft runs the "view in timeline" action,
  * which is exactly what the old inline input did on every keystroke: the
  * query lands in the workspace state and filters the visible memos.
+ *
+ * While a query is active the trigger renders as the query chip plus a clear
+ * button instead of the "Search notes" button, so an active query is cleared
+ * first. Without that, a second search in the same test could never find the
+ * trigger.
  */
 export async function searchTimeline(page: Page, query: string) {
+  const clear = page.getByRole("button", {
+    name: /清除搜索|Clear search/i,
+  });
+  if (await clear.count()) {
+    await clear.first().click();
+  }
   await searchTrigger(page).click();
   const dialog = page.locator('[role="dialog"]:visible').last();
   const input = dialog.getByPlaceholder(

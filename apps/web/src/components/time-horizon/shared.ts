@@ -11,7 +11,6 @@ export type DisplayMode = "calendar" | "heatmap";
 export type FlareMoTimeHorizonProps = {
   stats: MemoStatsResponse;
   streak: number;
-  monthLabels: Array<{ date: string; label: string }>;
   /** Viewer's IANA zone: the year view anchors its own stats query with it. */
   timeZone: string;
   space?: MemoSpace;

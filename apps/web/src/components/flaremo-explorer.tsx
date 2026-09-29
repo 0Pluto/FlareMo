@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/i18n";
-import { buildMonthLabels, currentStreak } from "@/lib/activity";
+import { currentStreak } from "@/lib/activity";
 import { queryKeys } from "@/lib/query-keys";
 import { TIMELINE_SEARCH } from "@/lib/timeline-search";
 import { cn } from "@/lib/utils";
@@ -94,7 +94,7 @@ export const FlareMoExplorer = memo(function FlareMoExplorer({
   onDaySelect,
   onNavigate,
 }: FlareMoExplorerProps) {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const session = authClient.useSession();
   const captureStatus = useQuery({
     queryKey: queryKeys.captureStatus.forUser(session.data?.user.id),
@@ -104,10 +104,6 @@ export const FlareMoExplorer = memo(function FlareMoExplorer({
     retry: false,
   });
   const streak = useMemo(() => currentStreak(stats.activity), [stats.activity]);
-  const monthLabels = useMemo(
-    () => buildMonthLabels(stats.activity, locale),
-    [stats.activity, locale],
-  );
 
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
@@ -130,7 +126,6 @@ export const FlareMoExplorer = memo(function FlareMoExplorer({
         <MiniCalendarReminders />
         <FlareMoTimeHorizon
           hoveredDate={hoveredDate}
-          monthLabels={monthLabels}
           space={space}
           stats={stats}
           timeZone={timeZone}

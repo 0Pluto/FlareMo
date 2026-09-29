@@ -59,7 +59,6 @@ export type {
 export const FlareMoTimeHorizon = memo(function FlareMoTimeHorizon({
   stats,
   streak: _streak,
-  monthLabels,
   timeZone,
   space,
   onDaySelect,
@@ -404,13 +403,6 @@ export const FlareMoTimeHorizon = memo(function FlareMoTimeHorizon({
             />
           )}
         </div>
-      </div>
-
-      {/* ── Hidden monthLabels container for E2E Contract Parity ─────────── */}
-      <div aria-hidden="true" className="hidden">
-        {monthLabels.map((m) => (
-          <span key={m.date}>{m.label}</span>
-        ))}
       </div>
 
       {/* ── Bottom Single-Line Micro Tooltip (Hover Details Only) ────────── */}

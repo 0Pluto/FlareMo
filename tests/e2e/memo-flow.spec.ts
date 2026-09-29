@@ -220,7 +220,7 @@ test("loads memo attachments without per-memo request waterfalls", async ({
 
 test("keeps a composer draft when saving fails", async ({ page }) => {
   const content = `Resilient draft #draft${Date.now()}`;
-  await page.route("**/api/app/memos", async (route) => {
+  await page.route("**/api/app/memos*", async (route) => {
     if (route.request().method() === "POST") {
       await route.fulfill({
         status: 503,
@@ -254,7 +254,7 @@ test("shows the new card optimistically before the create request answers", asyn
   const createAnswered = new Promise<void>((resolve) => {
     releaseCreate = resolve;
   });
-  await page.route("**/api/app/memos", async (route) => {
+  await page.route("**/api/app/memos*", async (route) => {
     if (route.request().method() === "POST") {
       await createAnswered;
       await route.fulfill({
@@ -331,15 +331,34 @@ test("edits and shares a memo", async ({ page }) => {
   ).toHaveCount(0);
 
   const updatedCard = page.locator("article").filter({ hasText: updated });
-  // Visibility now lives in a ⋯ submenu: going public provisions the link,
-  // which then shows on the card and can be copied from the same menu.
+  // Visibility is a single menu entry that opens the visibility dialog (it is
+  // no longer a submenu), and choosing 全网公开 there provisions the share rule.
+  // The resulting share URL is surfaced inside that dialog, not on the card.
   await updatedCard.getByRole("button", { name: /actions|操作/i }).click();
-  await page.getByRole("menuitem", { name: /visibility|可见性/i }).click();
-  await page.getByRole("menuitem", { name: /全网公开|Public web/i }).click();
-  await expect(updatedCard.getByText(/\/share\//)).toBeVisible();
-  await updatedCard.getByRole("button", { name: /actions|操作/i }).click();
+  await page
+    .getByRole("menuitem", { name: /可见性与分享|Visibility & Sharing/i })
+    .click();
+  const visibilityDialog = page.locator('[role="dialog"]:visible').last();
+  await visibilityDialog
+    .getByRole("button", { name: /全网公开|Public web/i })
+    .click();
+  // The card flips to public; the share URL is rendered inside the dialog as a
+  // read-only input's value, so reopen it and assert on that value.
   await expect(
-    page.getByRole("menuitem", { name: /copy link|复制链接/i }),
+    updatedCard.getByRole("button", { name: /Public web|全网公开/i }),
+  ).toBeVisible();
+  await updatedCard.getByRole("button", { name: /actions|操作/i }).click();
+  await page
+    .getByRole("menuitem", { name: /可见性与分享|Visibility & Sharing/i })
+    .click();
+  const publicDialog = page.locator('[role="dialog"]:visible').last();
+  await expect(publicDialog.locator("input[readonly]")).toHaveValue(
+    /\/share\//,
+  );
+  // Copying the link is an action inside this dialog now, not a card-menu
+  // entry; assert it is offered and labelled.
+  await expect(
+    publicDialog.getByRole("button", { name: /copy link|复制链接/i }),
   ).toBeEnabled();
   await page.keyboard.press("Escape");
 });
@@ -460,19 +479,20 @@ test("shows the installed version and safe update fallback", async ({
 
   await page.goto("/");
 
-  // Up-to-date state names itself; the version pin lives next to the bell.
-  const updateButton = page.getByRole("button", {
-    name: /up to date|已是最新|update/i,
-  });
-  await expect(updateButton).toBeVisible();
-  await expect(updateButton).toContainText(version);
-  await updateButton.click();
+  // The update check lives in the sidebar's user menu now; the dialog reports
+  // the installed version and, when no newer release exists, offers no upgrade
+  // action — only the release-notes link.
+  await page
+    .getByRole("button", { name: /FlareMo E2E Owner|E2E Owner/i })
+    .first()
+    .click();
+  await page
+    .getByRole("menuitem", { name: /check for updates|检查更新/i })
+    .click();
 
-  const dialog = page.getByRole("dialog");
+  const dialog = page.locator('[role="dialog"]:visible').last();
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(version);
-  // No update is available, so the dialog carries no upgrade action: only the
-  // release-notes link (self-hosted fallback opens the guide instead).
   await expect(
     dialog.getByRole("link", { name: /update guide|升级指南/i }),
   ).toHaveCount(0);
@@ -559,25 +579,16 @@ test("creates, follows, reads, and removes memo relations", async ({
   expect(await contextResponse.json()).toMatchObject({ relations: [] });
 });
 
-test("keeps activity labels and the focused composer fully visible", async ({
+test("keeps the focused composer clear of the sticky header", async ({
   page,
 }) => {
   await page.goto("/");
 
-  const monthLabels = page.locator(
-    '[data-testid="activity-heatmap"] + div span',
-  );
-  const visibleLabels = monthLabels.filter({ hasText: /\S/ });
-  await expect(visibleLabels.first()).toBeVisible();
-  for (const label of await visibleLabels.all()) {
-    const style = await label.evaluate((element) => ({
-      overflow: getComputedStyle(element).overflow,
-      textOverflow: getComputedStyle(element).textOverflow,
-    }));
-    expect(style.overflow).toBe("visible");
-    expect(style.textOverflow).not.toBe("ellipsis");
-  }
-
+  // The activity visualisation is a Year/Month/Week/Day dial now; the textual
+  // month labels it used to render are gone (the year view is a dot-cluster
+  // grid), so there is no label-overflow contract left to assert here. What
+  // still matters is that focusing the composer never slides it under the
+  // sticky header.
   const composer = page.getByRole("textbox", { name: /new note|新笔记/i });
   const composerForm = page.locator("form").filter({ has: composer });
   await page.waitForTimeout(250);
