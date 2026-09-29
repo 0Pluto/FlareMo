@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_BASE_URL } from "./auth-fixture";
-import { searchTimeline, startWithEmptyDrafts } from "./workspace-helpers";
+import { searchTimeline, startWithCleanClientState } from "./workspace-helpers";
 
 const E2E_COOKIE_MUTATION_OPTIONS = {
   headers: { origin: E2E_BASE_URL },
@@ -247,9 +247,11 @@ test("shows the new card optimistically before the create request answers", asyn
   page,
 }) => {
   const content = `Optimistic landing #opt${Date.now()}`;
-  // A draft restored from an earlier test would replace what this test types,
-  // leaving Send disabled and the card uncreated.
-  await startWithEmptyDrafts(page);
+  // Clear drafts and the remembered send target from earlier tests: a leftover
+  // draft replaces what this test types (Send stays disabled, no card is
+  // created), and a remembered preference can file the memo into a corpus the
+  // default timeline does not show.
+  await startWithCleanClientState(page);
   // Hold the create response open: the card must already be on screen from
   // the optimistic prepend, not only after the server round-trip (this is
   // the memo-cache slot fix's behavior contract).
@@ -286,7 +288,27 @@ test("shows the new card optimistically before the create request answers", asyn
 
   await page.goto("/");
   const composer = page.getByRole("textbox", { name: /new note|新笔记/i });
+  // Wait for the composer to mount before typing: the draft restore is async,
+  // and filling while it is still settling races the restore write-back.
+  await expect(composer).toBeVisible();
+
+  // Wait for the first timeline page to load before submitting. The optimistic
+  // insert prepends into the existing `["memos"]` cache and deliberately skips
+  // keys that have no data yet (`memo-cache.ts`, `|| !data`), so it never
+  // fabricates a timeline that has not arrived. Submitting first produces no
+  // optimistic card at all — and because this mock holds the POST open, the
+  // card then cannot appear by any other route. That needs a slow first paint,
+  // which is why it failed only in a full suite run and never in isolation.
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => document.querySelectorAll("main article").length),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(0);
+
   await composer.fill(content);
+  await expect(composer).toHaveText(content);
   await page.getByRole("button", { name: /^(save|保存|send|发送)$/i }).click();
 
   // The optimistic insert lands without waiting for the network.

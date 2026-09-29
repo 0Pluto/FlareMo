@@ -122,8 +122,30 @@ async function enableCapture(
 ) {
   await trackMicrophones(page, options);
   if (options.clearDrafts) {
-    await page.addInitScript(() => {
-      indexedDB.deleteDatabase("flaremo-local-memo-capture");
+    // Same approach as startWithEmptyDrafts: only touch an existing database
+    // (opening a missing one would create it empty and break the app's own
+    // open), and clear stores instead of deleting the DB (a delete is blocked
+    // while the app holds a connection and can land mid-test).
+    await page.addInitScript(async () => {
+      const dbName = "flaremo-local-memo-capture";
+      const existing = await indexedDB.databases();
+      if (!existing.some((entry) => entry.name === dbName)) return;
+      const request = indexedDB.open(dbName);
+      request.onsuccess = () => {
+        const db = request.result;
+        const stores = ["drafts", "submission-queue"].filter((name) =>
+          db.objectStoreNames.contains(name),
+        );
+        if (stores.length === 0) {
+          db.close();
+          return;
+        }
+        const tx = db.transaction(stores, "readwrite");
+        for (const name of stores) tx.objectStore(name).clear();
+        tx.oncomplete = () => db.close();
+        tx.onerror = tx.onabort = () => db.close();
+      };
+      request.onerror = request.onblocked = () => undefined;
     });
   }
   await page.route("**/api/app/capture/status", (route) =>

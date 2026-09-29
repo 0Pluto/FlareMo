@@ -64,9 +64,78 @@ export async function clearTimelineSearch(page: Page) {
  * test that needs the composer to start blank; tests that exercise draft
  * recovery must NOT call it.
  */
-export async function startWithEmptyDrafts(page: Page) {
-  await page.addInitScript(() => {
-    indexedDB.deleteDatabase("flaremo-local-memo-capture");
+/**
+ * Reset the app's persisted client state so a test starts from a clean slate.
+ *
+ * The suite runs serially in one shared browser profile, and the app persists
+ * user preferences there — which makes otherwise-stateless tests depend on the
+ * order they run in. Two real examples, both of which only reproduce in a full
+ * run:
+ *
+ * - Composer/capture drafts live in IndexedDB. A leftover draft makes the
+ *   composer restore it (Send stays disabled on the text the test just typed)
+ *   or /capture open its recovery screen (no record button).
+ * - The composer's send target is remembered per space in localStorage
+ *   (`flaremo.composer.visibility`). A previously-remembered `private` for the
+ *   personal space overrides the team space's `protected` default, so a memo
+ *   the test expects in the team timeline is filed — correctly — as personal.
+ *
+ * Call this before `page.goto`, in any test that depends on a clean draft or
+ * on the space-derived send target. Tests that deliberately exercise draft
+ * recovery or a remembered preference must NOT call it.
+ */
+export async function startWithCleanClientState(page: Page) {
+  await page.addInitScript(async () => {
+    for (const key of [
+      "flaremo.composer.visibility",
+      // Draft/filter affordances that would otherwise leak between tests.
+      "flaremo.explorer.tags-collapsed",
+      "flaremo.pwa.install-dismissed",
+    ]) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // Storage may be unavailable; the test still gets a fresh document.
+      }
+    }
+
+    const dbName = "flaremo-local-memo-capture";
+    // Guard on existence: opening a non-existent database CREATES it, and an
+    // empty same-version database makes the app's own open skip
+    // `onupgradeneeded`, leaving it without its object stores.
+    const existing = await indexedDB.databases();
+    if (!existing.some((entry) => entry.name === dbName)) return;
+
+    // Clear the object stores rather than deleting the database: a delete is
+    // blocked while the app holds a connection and can land mid-test, wiping
+    // the draft the test just created.
+    const request = indexedDB.open(dbName);
+    await new Promise<void>((resolve) => {
+      const done = () => resolve();
+      request.onerror = done;
+      request.onblocked = done;
+      request.onsuccess = () => {
+        const db = request.result;
+        const stores = ["drafts", "submission-queue"].filter((name) =>
+          db.objectStoreNames.contains(name),
+        );
+        if (stores.length === 0) {
+          db.close();
+          done();
+          return;
+        }
+        const tx = db.transaction(stores, "readwrite");
+        for (const name of stores) tx.objectStore(name).clear();
+        tx.oncomplete = () => {
+          db.close();
+          done();
+        };
+        tx.onerror = tx.onabort = () => {
+          db.close();
+          done();
+        };
+      };
+    });
   });
 }
 

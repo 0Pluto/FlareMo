@@ -1,5 +1,6 @@
 import type { MemoDto } from "@flaremo/contracts";
 import { expect, test } from "@playwright/test";
+import { startWithCleanClientState } from "./workspace-helpers";
 
 function note(id: string, visibility: MemoDto["visibility"]): MemoDto {
   return {
@@ -86,6 +87,11 @@ test("switching spaces scopes the timeline request and keeps the URL restorable"
 test("a private capture in the team space only appears in its own timeline", async ({
   page,
 }) => {
+  // This case asserts the space-derived send target, so clear any send-target
+  // preference a previous test remembered for the personal space — otherwise
+  // that preference (correctly) wins over the team default and the optimistic
+  // card never enters the team timeline.
+  await startWithCleanClientState(page);
   // The composer's send target follows the active space, so a capture typed
   // in the team space travels as protected and the optimistic card may show
   // in the team timeline. This case pins the counterpart: when the wire

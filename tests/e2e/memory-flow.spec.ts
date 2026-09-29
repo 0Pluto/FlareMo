@@ -70,13 +70,14 @@ test("edits a memory from the memory card", async ({ page }) => {
     .click();
   await expect(page.getByText(content)).toBeVisible();
 
-  // The edit action lives in the memory card's overflow menu.
-  await page
-    .getByRole("button", { name: /actions|操作/i })
-    .first()
-    .click();
+  // The edit action lives in the memory card's overflow menu. Scope to the
+  // card holding this test's memory: a full-suite run has other memories on
+  // the page, and an unscoped `.first()` opens the wrong card's menu.
+  const card = page.locator("article").filter({ hasText: content });
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: /actions|操作/i }).click();
   await page.getByRole("menuitem", { name: /^edit$|^编辑$/i }).click();
-  const editDialog = page.getByRole("dialog");
+  const editDialog = page.locator('[role="dialog"]:visible').last();
   await editDialog.locator("textarea").fill(updated);
   await editDialog.getByRole("button", { name: /save|保存/i }).click();
 
