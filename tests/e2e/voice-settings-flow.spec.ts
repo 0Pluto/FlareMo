@@ -168,7 +168,10 @@ test("owner saves encrypted credentials through the UI and disables capture", as
   // Sonner renders toasts as an `aria-live="polite"` list, not `role="status"`,
   // so match the toast text itself.
   await expect(
-    page.getByText(/Settings saved|配置已保存/).locator("visible=true").first(),
+    page
+      .getByText(/Settings saved|配置已保存/)
+      .locator("visible=true")
+      .first(),
   ).toBeVisible();
   await expect(secretKey).toHaveValue("");
   const metadata = await page.request.get("/api/app/voice-settings");

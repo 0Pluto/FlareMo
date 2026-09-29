@@ -208,9 +208,7 @@ test("uses only semantic requests after choosing semantic search and preserves i
   await expect(
     page.getByText("Workspace note timeline", { exact: true }),
   ).toBeVisible();
-  await dialog
-    .getByPlaceholder(/找一找|Find:/i)
-    .fill("阅读的想法");
+  await dialog.getByPlaceholder(/找一找|Find:/i).fill("阅读的想法");
   await dialog.getByPlaceholder(/找一找|Find:/i).press("Enter");
   await expect(
     page.getByRole("link", { name: /reading-notes.txt/i }),

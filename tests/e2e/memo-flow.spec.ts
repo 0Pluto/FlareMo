@@ -30,9 +30,7 @@ test("creates a memo and filters it by tag", async ({ page }) => {
   await searchTimeline(page, tag);
   // The card body and the highlighted search excerpt both contain the text, so
   // match the body paragraph specifically.
-  await expect(
-    page.getByText(content, { exact: true }).first(),
-  ).toBeVisible();
+  await expect(page.getByText(content, { exact: true }).first()).toBeVisible();
 });
 
 test("restores an unfinished new-memo draft after a reload", async ({
