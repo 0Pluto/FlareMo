@@ -5,17 +5,30 @@ import {
   lazyRouteComponent,
 } from "@tanstack/react-router";
 import { RootLayout } from "@/components/root-layout";
+import { loadHomeContent } from "@/content/copy";
+import { loadShowcaseContent } from "@/content/showcase-i18n";
 import { getDoc } from "@/lib/docs-source.generated";
+import { SUPPORTED_LOCALES, type SupportedLocale } from "@/lib/seo";
 import { DocsIndexPage } from "@/pages/docs-index-page";
-import { HomePage } from "@/pages/home-page";
 import { NotFoundPage } from "@/pages/not-found-page";
 
 const DocsDetailPage = lazyRouteComponent(
   () => import("@/pages/docs-detail-page"),
   "DocsDetailPage",
 );
+const HomePage = lazyRouteComponent(
+  () => import("@/pages/home-page"),
+  "HomePage",
+);
 
 export type History = ReturnType<typeof createRouter>["history"];
+
+function loadHomeRouteData(locale: SupportedLocale) {
+  return Promise.all([
+    loadHomeContent(locale),
+    loadShowcaseContent(locale),
+  ]).then(([home, showcase]) => ({ home, showcase }));
+}
 
 /**
  * Code-based route tree, mirroring the shape of apps/web/src/App.tsx so the
@@ -30,6 +43,7 @@ export function buildRouteTree() {
     getParentRoute: () => rootRoute,
     path: "/",
     component: HomePage,
+    loader: () => loadHomeRouteData("en"),
   });
 
   const docsIndexRoute = createRoute({
@@ -52,12 +66,12 @@ export function buildRouteTree() {
     component: NotFoundPage,
   });
 
-  const locales = ["en", "zh", "ja", "fr", "es", "ko", "ru", "ar"] as const;
-  const localeRoutes = locales.flatMap((locale) => [
+  const localeRoutes = SUPPORTED_LOCALES.flatMap((locale) => [
     createRoute({
       getParentRoute: () => rootRoute,
       path: `/${locale}`,
       component: HomePage,
+      loader: () => loadHomeRouteData(locale),
     }),
     createRoute({
       getParentRoute: () => rootRoute,

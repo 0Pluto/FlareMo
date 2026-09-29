@@ -4,21 +4,100 @@ import {
   useLocation,
   useParams,
 } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ChevronDown, ChevronLeft } from "lucide-react";
 import { useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { docPath, getDocNavGroups } from "@/content/docs-nav";
-import { type DocEntry, listDocs } from "@/lib/docs-source.generated";
-import { getLocaleFromPath, getLocalizedPath } from "@/lib/seo";
+import {
+  type DocEntry,
+  type DocMeta,
+  listDocs,
+} from "@/lib/docs-source.generated";
+import {
+  getLocaleFromPath,
+  getLocalizedPath,
+  type SupportedLocale,
+} from "@/lib/seo";
 
 const markdownComponents: Components = {
+  // A non-leading H1 is still meaningful content; keep it as a heading while
+  // avoiding a second level-one heading when a document repeats its title.
+  h1: ({ children }) => <h2>{children}</h2>,
   table: ({ children }) => (
     <div className="prose-table-scroll">
       <table>{children}</table>
     </div>
   ),
 };
+
+function removeDuplicateLeadingTitle(markdown: string, title: string) {
+  const lines = markdown.split(/\r?\n/);
+  const firstContentLine = lines.findIndex((line) => line.trim().length > 0);
+  if (firstContentLine < 0) return markdown;
+
+  const firstLine = lines[firstContentLine];
+  if (!/^#(?!#)\s+/.test(firstLine)) return markdown;
+
+  const heading = firstLine
+    .replace(/^#\s+/, "")
+    .replace(/\s+#+\s*$/, "")
+    .trim();
+  if (heading !== title.trim()) return markdown;
+
+  lines.splice(firstContentLine, 1);
+  return lines.join("\n");
+}
+
+function DocsNav({
+  allDocs,
+  groups,
+  locale,
+  slug,
+}: {
+  allDocs: DocMeta[];
+  groups: ReturnType<typeof getDocNavGroups>;
+  locale: SupportedLocale;
+  slug: string;
+}) {
+  return (
+    <nav
+      aria-label={locale === "zh" ? "文档目录" : "Documentation"}
+      className="space-y-5"
+    >
+      {groups.map((group) => {
+        const docsInGroup = allDocs.filter((d) => d.group === group.id);
+        if (docsInGroup.length === 0) return null;
+        return (
+          <div key={group.id} className="space-y-1.5">
+            <div className="px-2 text-xs font-bold uppercase tracking-wider text-fog">
+              {group.label}
+            </div>
+            <ul className="space-y-0.5">
+              {docsInGroup.map((d) => {
+                const isActive = d.slug === slug;
+                return (
+                  <li key={d.slug}>
+                    <Link
+                      className={`block rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                        isActive
+                          ? "border border-line/60 bg-surface font-bold text-signal-ink shadow-2xs"
+                          : "text-mist hover:bg-wash hover:text-ink"
+                      }`}
+                      to={docPath(d.slug, locale)}
+                    >
+                      {d.title}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
 
 export function DocsDetailPage() {
   const { pathname } = useLocation();
@@ -32,6 +111,10 @@ export function DocsDetailPage() {
   };
   const allDocs = useMemo(() => listDocs(docLocale), [docLocale]);
   const groups = useMemo(() => getDocNavGroups(locale), [locale]);
+  const markdownBody = useMemo(
+    () => (doc ? removeDuplicateLeadingTitle(doc.body, doc.title) : ""),
+    [doc],
+  );
 
   if (!doc) {
     return (
@@ -67,38 +150,32 @@ export function DocsDetailPage() {
           <span>{locale === "zh" ? "文档总览" : "Docs Overview"}</span>
         </Link>
 
-        <nav className="space-y-5">
-          {groups.map((group) => {
-            const docsInGroup = allDocs.filter((d) => d.group === group.id);
-            if (docsInGroup.length === 0) return null;
-            return (
-              <div key={group.id} className="space-y-1.5">
-                <div className="text-xs font-bold uppercase tracking-wider text-fog px-2">
-                  {group.label}
-                </div>
-                <ul className="space-y-0.5">
-                  {docsInGroup.map((d) => {
-                    const isActive = d.slug === slug;
-                    return (
-                      <li key={d.slug}>
-                        <Link
-                          className={`block rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-                            isActive
-                              ? "bg-surface font-bold text-signal-ink shadow-2xs border border-line/60"
-                              : "text-mist hover:bg-wash hover:text-ink"
-                          }`}
-                          to={docPath(d.slug, locale)}
-                        >
-                          {d.title}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })}
-        </nav>
+        <details
+          className="group rounded-xl border border-line/60 bg-soft-surface/40 lg:hidden"
+          key={`${locale}:${slug}`}
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/50 focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+            <span>{locale === "zh" ? "文档目录" : "Documentation"}</span>
+            <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="border-t border-line/60 px-3 pb-3 pt-3">
+            <DocsNav
+              allDocs={allDocs}
+              groups={groups}
+              locale={locale}
+              slug={slug}
+            />
+          </div>
+        </details>
+
+        <div className="hidden lg:block">
+          <DocsNav
+            allDocs={allDocs}
+            groups={groups}
+            locale={locale}
+            slug={slug}
+          />
+        </div>
       </aside>
 
       {/* 文档主体内容。
@@ -132,7 +209,7 @@ export function DocsDetailPage() {
             components={markdownComponents}
             remarkPlugins={[remarkGfm]}
           >
-            {doc.body}
+            {markdownBody}
           </ReactMarkdown>
         </div>
       </article>

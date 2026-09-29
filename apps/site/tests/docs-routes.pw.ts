@@ -63,6 +63,7 @@ for (const route of [
     const errors = await collectHydrationErrors(page);
     await page.goto(route.path);
 
+    await expect(page.locator("main h1")).toHaveCount(1);
     await expect(page.locator("main h1").first()).toHaveText(route.heading);
     await expect(page.locator("main article").first()).toContainText(
       route.body,
@@ -72,3 +73,27 @@ for (const route of [
     expectNoHydrationErrors(errors);
   });
 }
+
+test("mobile docs keeps its directory collapsed until requested", async ({
+  page,
+}) => {
+  const errors = await collectHydrationErrors(page);
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page.goto("/zh/docs/deploy");
+
+  const directory = page.locator("aside details");
+  await expect(directory).toBeVisible();
+  await expect(directory).not.toHaveAttribute("open", "");
+
+  const summary = directory.locator("summary");
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  await expect(directory).toHaveAttribute("open", "");
+  await expect(directory.locator("nav")).toBeVisible();
+  await directory.getByRole("link", { name: "维护手册", exact: true }).click();
+  await expect(page).toHaveURL(/\/zh\/docs\/maintenance\/?$/);
+  await expect(directory).not.toHaveAttribute("open", "");
+
+  await waitForHydratedControls(page);
+  expectNoHydrationErrors(errors);
+});
