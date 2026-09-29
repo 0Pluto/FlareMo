@@ -31,7 +31,11 @@ FlareMo 使用 SemVer。每个 release 都要写清楚升级影响、Cloudflare 
 ### 工程卫生
 
 - 清理 24 条既有 biome 告警（未使用导入/变量、可选链、非空断言），全为语义等价的机械修正；仓库告警从 44 降至 20，剩余的均为移植 CSS 的 `noDescendingSpecificity`（样式组织建议、非错误，已按视觉验收，重排有回归风险故保留）。
-- 全量 E2E 从 21 个失败修到 **73/73 全绿**：workspace 布局统一改版后，多份 spec 仍指向旧 UI（内联搜索已迁至 ⌘K spotlight 弹窗、设置面板按断点挂载两份、语音设置改为「状态行 + 配置弹窗」、记忆页改为内联快速输入器、`/capture` 并入统一工作区）。另修掉三处测试自身缺陷：capture 用例间的 IndexedDB 草稿串味、共享页 `preload="none"` 音频的断言与模板相悖、以及 space 隐私用例与即时 mock 的竞态。
+- **全量 E2E 达到 75/75 全绿**。此前长期有 1–2 个用例在整轮里必挂、单独跑却通过，逐个查明都是共享浏览器 profile 的持久状态串味，而非产品缺陷：
+  - workspace 布局统一改版后，多份 spec 仍指向旧 UI（内联搜索已迁至 ⌘K spotlight 弹窗、设置面板按断点挂载两份、语音设置改为「状态行 + 配置弹窗」、记忆页改为内联快速输入器、`/capture` 并入统一工作区）。
+  - 新增 `startWithCleanClientState` 测试助手，统一清理 composer 发送目标偏好（`localStorage`）、标签折叠、PWA 提示，并清空 IndexedDB 的草稿与提交队列。发送目标是 per-space 记忆的：前一个用例把个人空间记成 private 后，团队空间里本该 protected 的新记录会被正确地填成个人，于是「它出现在团队时间线」的断言失败——产品行为正确，是测试互相污染。
+  - 清理 IndexedDB 一律「清空 object store」而非 `deleteDatabase`：删除在应用持有连接时会被阻塞并落到用例中途，把刚写好的草稿一起删掉；且对不存在的库调用 `open` 会创建空库，使应用自身的 `open` 跳过 `onupgradeneeded`。
+  - 另修掉两处测试自身缺陷：共享页 `preload="none"` 音频的断言与模板设计相悖（访客按下播放前浏览器不取媒体，duration 恒为空）、记忆编辑用例未限定卡片的 `.first()` 会打开别人的菜单。
 
 ### Memos 兼容面变化
 
