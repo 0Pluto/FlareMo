@@ -147,13 +147,22 @@ test("keeps the sticky transport in view while the transcript scrolls", async ({
   const bar = page.getByTestId("reading-time");
   await expect(bar).toBeVisible();
 
-  await page.evaluate(() => window.scrollTo(0, 900));
+  // The reading view renders inside the workspace shell, which owns the
+  // scrollport (`h-svh overflow-hidden` + an inner `overflow-y-auto` main), so
+  // the window itself never scrolls — `window.scrollTo` was a no-op and the
+  // sticky bar could not reach the top. Scroll the real container instead.
+  const scrolled = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    if (!main) return 0;
+    main.scrollTop = 900;
+    return main.scrollTop;
+  });
+  expect(scrolled).toBeGreaterThanOrEqual(900);
   await expect
     .poll(async () => (await bar.boundingBox())?.y ?? -1)
     .toBeGreaterThanOrEqual(0);
   const y = (await bar.boundingBox())?.y ?? -1;
   expect(y).toBeLessThan(100);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(900);
 });
 
 test("loads the audio so the player has real duration", async ({ page }) => {
@@ -284,15 +293,20 @@ test("serves the transcript audio on the public share page", async ({
   const token = share.name.split("/shares/").at(-1) as string;
 
   await page.goto(`/share/${token}`);
-  await expect(page.getByTestId("reading-time")).toBeVisible();
+  // /share/:token is the Worker's SSR page, not the SPA's reading view: it
+  // renders a native <audio controls> element rather than the sticky
+  // ReadingAudioBar, so there is no `reading-time` testid here. Assert the
+  // audio actually loads and reports a real duration.
+  const audio = page.locator("audio");
+  await expect(audio).toBeVisible();
   await page.waitForFunction(
     () => {
-      const audio = document.querySelector("audio");
+      const element = document.querySelector("audio");
       return (
-        audio !== null &&
-        audio.readyState >= 1 &&
-        Number.isFinite(audio.duration) &&
-        audio.duration > 0
+        element !== null &&
+        element.readyState >= 1 &&
+        Number.isFinite(element.duration) &&
+        element.duration > 0
       );
     },
     undefined,
