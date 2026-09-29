@@ -26,7 +26,7 @@ export function HomePage() {
   const home = getHomeContent(locale);
 
   return (
-    <main className="space-y-24 sm:space-y-32 pb-24 overflow-x-hidden">
+    <div className="space-y-24 sm:space-y-32 pb-24 overflow-x-hidden">
       <Hero home={home} locale={locale} />
       <InteractiveShowcase locale={locale} />
       <BentoFeatures
@@ -57,6 +57,6 @@ export function HomePage() {
         secondaryCta={home.secondaryCta}
         subtitle={home.ctaSubtitle}
       />
-    </main>
+    </div>
   );
 }

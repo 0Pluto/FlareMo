@@ -2,12 +2,18 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
 } from "@tanstack/react-router";
 import { RootLayout } from "@/components/root-layout";
-import { DocsDetailPage } from "@/pages/docs-detail-page";
+import { getDoc } from "@/lib/docs-source.generated";
 import { DocsIndexPage } from "@/pages/docs-index-page";
 import { HomePage } from "@/pages/home-page";
 import { NotFoundPage } from "@/pages/not-found-page";
+
+const DocsDetailPage = lazyRouteComponent(
+  () => import("@/pages/docs-detail-page"),
+  "DocsDetailPage",
+);
 
 export type History = ReturnType<typeof createRouter>["history"];
 
@@ -36,6 +42,8 @@ export function buildRouteTree() {
     getParentRoute: () => rootRoute,
     path: "/docs/$slug",
     component: DocsDetailPage,
+    loader: ({ params }) =>
+      getDoc(params.slug, "en-US").then((doc) => ({ doc })),
   });
 
   const notFoundRoute = createRoute({
@@ -60,6 +68,10 @@ export function buildRouteTree() {
       getParentRoute: () => rootRoute,
       path: `/${locale}/docs/$slug`,
       component: DocsDetailPage,
+      loader: ({ params }) =>
+        getDoc(params.slug, locale === "zh" ? "zh-CN" : "en-US").then(
+          (doc) => ({ doc }),
+        ),
     }),
   ]);
 

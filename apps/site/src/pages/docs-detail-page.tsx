@@ -1,12 +1,24 @@
-import { Link, useLocation, useParams } from "@tanstack/react-router";
+import {
+  Link,
+  useLoaderData,
+  useLocation,
+  useParams,
+} from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { useMemo } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { docPath, getDocNavGroups } from "@/content/docs-nav";
-import { getDoc, listDocs } from "@/lib/docs-source.generated";
-import "@/styles/prose.css";
+import { type DocEntry, listDocs } from "@/lib/docs-source.generated";
 import { getLocaleFromPath, getLocalizedPath } from "@/lib/seo";
+
+const markdownComponents: Components = {
+  table: ({ children }) => (
+    <div className="prose-table-scroll">
+      <table>{children}</table>
+    </div>
+  ),
+};
 
 export function DocsDetailPage() {
   const { pathname } = useLocation();
@@ -15,13 +27,15 @@ export function DocsDetailPage() {
   const docLocale = locale === "zh" ? "zh-CN" : "en-US";
   const slug = routeSlug ?? "";
 
-  const doc = useMemo(() => getDoc(slug, docLocale), [slug, docLocale]);
+  const { doc } = useLoaderData({ strict: false }) as {
+    doc: DocEntry | null;
+  };
   const allDocs = useMemo(() => listDocs(docLocale), [docLocale]);
   const groups = useMemo(() => getDocNavGroups(locale), [locale]);
 
   if (!doc) {
     return (
-      <main className="container-x py-20 text-center">
+      <div className="container-x py-20 text-center">
         <h1 className="text-2xl font-bold tracking-tight text-ink">
           {locale === "zh" ? "文档不存在" : "Document not found"}
         </h1>
@@ -37,12 +51,12 @@ export function DocsDetailPage() {
           <ChevronLeft className="size-4 rtl:-rotate-180" />
           {locale === "zh" ? "回到文档总览" : "Back to docs"}
         </Link>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="container-x grid gap-10 py-10 md:py-14 lg:grid-cols-[15rem_1fr]">
+    <div className="container-x grid gap-10 py-10 md:py-14 lg:grid-cols-[15rem_1fr]">
       {/* 侧边导航栏 */}
       <aside className="lg:sticky lg:top-20 lg:self-start space-y-6">
         <Link
@@ -114,9 +128,14 @@ export function DocsDetailPage() {
         </header>
 
         <div className="prose-doc">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.body}</ReactMarkdown>
+          <ReactMarkdown
+            components={markdownComponents}
+            remarkPlugins={[remarkGfm]}
+          >
+            {doc.body}
+          </ReactMarkdown>
         </div>
       </article>
-    </main>
+    </div>
   );
 }

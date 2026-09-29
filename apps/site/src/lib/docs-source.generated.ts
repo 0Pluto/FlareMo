@@ -1,34 +1,89 @@
 /*
- * Docs source registry. Imports every docs/*.md and docs/en/*.md file at build
- * time so prerender can statically render /docs/<slug> for every locale.
+ * Docs source registry. Keeps document metadata in the entry chunk while
+ * loading each markdown body only for the detail route that needs it. The SSG
+ * loader awaits the same functions, so every prerendered detail page still
+ * contains its complete article body.
  *
  * Adding a new doc: drop the .md file under docs/ (or docs/en/) and add an
  * entry below. The slug is the locale-prefixed filename without extension.
  */
 
-import agentDeploy from "../../../../docs/agent-deploy.md?raw";
-import agentIngestion from "../../../../docs/agent-ingestion.md?raw";
-import agentMemory from "../../../../docs/agent-memory.md?raw";
-import architectureNotes from "../../../../docs/architecture-notes.md?raw";
-import deploy from "../../../../docs/deploy.md?raw";
-import designSystem from "../../../../docs/design-system.md?raw";
-import enAgentDeploy from "../../../../docs/en/agent-deploy.md?raw";
-import enAgentMemory from "../../../../docs/en/agent-memory.md?raw";
-import enDeploy from "../../../../docs/en/deploy.md?raw";
-import enMemosCompatibility from "../../../../docs/en/memos-compatibility.md?raw";
-import enPlugins from "../../../../docs/en/plugins.md?raw";
-import enTeamMode from "../../../../docs/en/team-mode.md?raw";
-import enUpdate from "../../../../docs/en/update.md?raw";
-import maintenance from "../../../../docs/maintenance.md?raw";
-import memosCompatibility from "../../../../docs/memos-compatibility.md?raw";
-import memosEcosystem from "../../../../docs/memos-ecosystem.md?raw";
-import plugins from "../../../../docs/plugins.md?raw";
-import productRequirements from "../../../../docs/product-requirements.md?raw";
-import release from "../../../../docs/release.md?raw";
-import semanticSearch from "../../../../docs/semantic-search.md?raw";
-import teamMode from "../../../../docs/team-mode.md?raw";
-import techStack from "../../../../docs/tech-stack.md?raw";
-import update from "../../../../docs/update.md?raw";
+type RawDocLoader = () => Promise<string>;
+
+const agentDeploy: RawDocLoader = () =>
+  import("../../../../docs/agent-deploy.md?raw").then(
+    (module) => module.default,
+  );
+const agentIngestion: RawDocLoader = () =>
+  import("../../../../docs/agent-ingestion.md?raw").then(
+    (module) => module.default,
+  );
+const agentMemory: RawDocLoader = () =>
+  import("../../../../docs/agent-memory.md?raw").then(
+    (module) => module.default,
+  );
+const architectureNotes: RawDocLoader = () =>
+  import("../../../../docs/architecture-notes.md?raw").then(
+    (module) => module.default,
+  );
+const deploy: RawDocLoader = () =>
+  import("../../../../docs/deploy.md?raw").then((module) => module.default);
+const designSystem: RawDocLoader = () =>
+  import("../../../../docs/design-system.md?raw").then(
+    (module) => module.default,
+  );
+const enAgentDeploy: RawDocLoader = () =>
+  import("../../../../docs/en/agent-deploy.md?raw").then(
+    (module) => module.default,
+  );
+const enAgentMemory: RawDocLoader = () =>
+  import("../../../../docs/en/agent-memory.md?raw").then(
+    (module) => module.default,
+  );
+const enDeploy: RawDocLoader = () =>
+  import("../../../../docs/en/deploy.md?raw").then((module) => module.default);
+const enMemosCompatibility: RawDocLoader = () =>
+  import("../../../../docs/en/memos-compatibility.md?raw").then(
+    (module) => module.default,
+  );
+const enPlugins: RawDocLoader = () =>
+  import("../../../../docs/en/plugins.md?raw").then((module) => module.default);
+const enTeamMode: RawDocLoader = () =>
+  import("../../../../docs/en/team-mode.md?raw").then(
+    (module) => module.default,
+  );
+const enUpdate: RawDocLoader = () =>
+  import("../../../../docs/en/update.md?raw").then((module) => module.default);
+const maintenance: RawDocLoader = () =>
+  import("../../../../docs/maintenance.md?raw").then(
+    (module) => module.default,
+  );
+const memosCompatibility: RawDocLoader = () =>
+  import("../../../../docs/memos-compatibility.md?raw").then(
+    (module) => module.default,
+  );
+const memosEcosystem: RawDocLoader = () =>
+  import("../../../../docs/memos-ecosystem.md?raw").then(
+    (module) => module.default,
+  );
+const plugins: RawDocLoader = () =>
+  import("../../../../docs/plugins.md?raw").then((module) => module.default);
+const productRequirements: RawDocLoader = () =>
+  import("../../../../docs/product-requirements.md?raw").then(
+    (module) => module.default,
+  );
+const release: RawDocLoader = () =>
+  import("../../../../docs/release.md?raw").then((module) => module.default);
+const semanticSearch: RawDocLoader = () =>
+  import("../../../../docs/semantic-search.md?raw").then(
+    (module) => module.default,
+  );
+const teamMode: RawDocLoader = () =>
+  import("../../../../docs/team-mode.md?raw").then((module) => module.default);
+const techStack: RawDocLoader = () =>
+  import("../../../../docs/tech-stack.md?raw").then((module) => module.default);
+const update: RawDocLoader = () =>
+  import("../../../../docs/update.md?raw").then((module) => module.default);
 
 export type DocLocale = "zh-CN" | "en-US";
 
@@ -40,7 +95,7 @@ export type DocEntry = {
   group: DocGroup;
   /** Short one-line description (used for SEO and the directory page). */
   description: string;
-  /** Raw markdown body. */
+  /** Raw markdown body, loaded only by a detail route or SSG render. */
   body: string;
   /** When true, body is the Chinese source (for fallback when EN is missing). */
   fallbackFromZh?: boolean;
@@ -57,7 +112,12 @@ export type DocMeta = Omit<DocEntry, "body">;
 
 const ZH_DOCS: Record<
   string,
-  { title: string; group: DocGroup; body: string; fallbackFromZh?: boolean }
+  {
+    title: string;
+    group: DocGroup;
+    body: RawDocLoader;
+    fallbackFromZh?: boolean;
+  }
 > = {
   "agent-deploy": {
     title: "Agent 部署 Runbook",
@@ -143,7 +203,12 @@ const ZH_DOCS: Record<
 
 const EN_DOCS: Record<
   string,
-  { title: string; group: DocGroup; body: string; fallbackFromZh?: boolean }
+  {
+    title: string;
+    group: DocGroup;
+    body: RawDocLoader;
+    fallbackFromZh?: boolean;
+  }
 > = {
   deploy: {
     title: "Deploying FlareMo",
@@ -314,7 +379,10 @@ export function listDocs(locale: DocLocale): DocMeta[] {
     }));
 }
 
-export function getDoc(slug: string, locale: DocLocale): DocEntry | null {
+export async function getDoc(
+  slug: string,
+  locale: DocLocale,
+): Promise<DocEntry | null> {
   const source = locale === "zh-CN" ? ZH_DOCS : EN_DOCS;
   const doc = source[slug];
   if (!doc) return null;
@@ -325,7 +393,7 @@ export function getDoc(slug: string, locale: DocLocale): DocEntry | null {
     group: doc.group,
     description:
       (locale === "zh-CN" ? DESCRIPTIONS_ZH : DESCRIPTIONS_EN)[slug] ?? "",
-    body: doc.body,
+    body: await doc.body(),
     fallbackFromZh: doc.fallbackFromZh,
   };
 }
