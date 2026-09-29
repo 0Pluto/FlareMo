@@ -4,11 +4,11 @@ const pairs = `
 · 保存于| · saved at
 · 原始提交者未验证| · original author unverified
 · 当前记录归属| · current record owner
-· 最近更新：| · Last updated:s
+· 最近更新：| · Last updated:
 ← 返回|← Back
 ← 返回总览|← Back to projects
 上传中…|Uploading…
-上传失败：|Upload failed:s
+上传失败：|Upload failed:
 上传结果待确认；请核对后以同一提交标识重试|Upload result is uncertain. Check it and retry with the same submission ID.
 上传资料|Upload file
 为|Fors
@@ -16,7 +16,7 @@ const pairs = `
 下一步|Next step
 下一步动作|Next action
 下次跟进日期|Next follow-up date
-下次跟进：|Next follow-up:s
+下次跟进：|Next follow-up:
 下载已验证文件|Download verified file
 不能直接切换到这个状态|Cannot switch directly to this status
 个项目| projects
@@ -24,17 +24,17 @@ const pairs = `
 主记录暂无附件。|No files on the project record.
 仅展示当前账号可访问且原版仍保留的修订。|Only retained revisions accessible to this account are shown.
 仅展示当前账号可访问且原版仍保留的修订。原版有最近 50 份的保留阈值。|Only retained revisions accessible to this account are shown. FlareMo retains the latest 50.
-仍无法确认结果：|Result is still uncertain:s
+仍无法确认结果：|Result is still uncertain:
 使用原版 FlareMo 账号登录，再返回此页刷新。|Sign in with your FlareMo account, then return and refresh.
 保存|Save
 保存中…|Saving…
 保存修改|Save changes
-保存失败：|Save failed:s
+保存失败：|Save failed:
 保存结果待确认。已阻止重复创建；请刷新核对。|Save result is uncertain. Duplicate creation is blocked; refresh to check.
 保存结果待确认，请核对后使用同一次提交重试|Save result is uncertain. Check it, then retry the same submission.
 信息待补充|Information needed
 修改下一步|Edit next step
-修改失败：|Update failed:s
+修改失败：|Update failed:
 修改本人记录|Edit my update
 修订读取中…|Loading revisions…
 修订读取失败。|Could not load revisions.
@@ -50,18 +50,18 @@ const pairs = `
 刷新|Refresh
 刷新核对|Refresh and check
 卡点|Blocker
-原始提交者未验证 · 确认者未验证 · 原记录最后修改：|Original author unverified · confirmer unverified · last source edit:s
+原始提交者未验证 · 确认者未验证 · 原记录最后修改：|Original author unverified · confirmer unverified · last source edit:
 原成员当前不在名册|The original member is no longer in the directory
 原版当前账号无权维护这条项目主记录|This account cannot edit the project record.
 原记录已不在当前团队可见范围|The source record is no longer visible to this team.
-原记录：|Original record:s
+原记录：|Original record:
 原记录已变化，请刷新并核对，不能自动重试|The source record changed. Refresh and check before retrying.
 原记录已变化，请刷新并重新查看后再保存|The source record changed. Refresh and review it before saving.
 原记录格式已变化，请重新查看|The source record format changed. Review it again.
 原负责人目前不在名册|The original owner is no longer in the directory
 原阶段说明格式异常，请先修复原记录|The original phase history is malformed. Repair the source record first.
 发布|Post
-发布失败：|Post failed:s
+发布失败：|Post failed:
 发生日期无效|Occurrence date is invalid
 发生于|Occurred ons
 发生日期未登记|Occurrence date not recorded
@@ -74,14 +74,14 @@ const pairs = `
 启动为进行中前需补齐目标、负责人、当前情况、下一步和跟进日期|Provide the goal, owner, current status, next action and follow-up date before starting.
 团队共享 · 最近同步|Team shared · last synceds
 团队项目|Team projects
-姓名：|Name:s
+姓名：|Name:
 尚无关联进展。|No linked updates yet.
 尚无已登记阶段说明。|No phase history recorded.
 尚未安排|Not scheduled
 尚未登记|Not recorded
 尚未确认|Not confirmed
 已保存到 FlareMo 团队记录。|Saved to FlareMo team records.
-已核对保存结果：|Verified save result:s
+已核对保存结果：|Verified save result:
 已关联本账号|Linked to my account
 已结束|Ended
 已隐藏本账号资料。请在 FlareMo 退出并切换账号，然后返回刷新。|This account's information is hidden. Sign out or switch accounts in FlareMo, then refresh.
@@ -91,7 +91,7 @@ const pairs = `
 当前显示|Showing
 当前概况|Overview
 当前筛选没有项目。|No projects match these filters.
-当前记录归属：|Current record owner:s
+当前记录归属：|Current record owner:
 当前账号无权编辑这条项目记录|This account cannot edit this project record.
 当前账号没有有效团队成员身份|This account has no active team membership.
 当前身份无权为这条记录上传资料|This account cannot upload to this record.
@@ -126,7 +126,7 @@ const pairs = `
 按项目状态筛选|Filter by project status
 接下来|Next
 搜索项目名称|Search project name
-搜索：|Search:s
+搜索：|Search:
 收起记录|Hide records
 新建项目|New project
 新建项目或想法|New project or idea
@@ -151,7 +151,7 @@ const pairs = `
 未设截止日|No due date
 本人记录已修改|My update was changed.
 本人进展|My updates
-权限刷新失败；受保护内容已隐藏：|Permission refresh failed; protected content is hidden:s
+权限刷新失败；受保护内容已隐藏：|Permission refresh failed; protected content is hidden:
 权限待验证，无法预览。|Permission cannot be verified; preview unavailable.
 条| items
 来源与记录|Source and records
@@ -169,26 +169,26 @@ const pairs = `
 添加进展|Add update
 清除条件|Clear filters
 状态|Status
-状态：|Status:s
+状态：|Status:
 目标|Goal
 目标 / 预期结果|Goal / expected outcome
 目标截止日|Target due date
 目标截止日期|Target due date
-目标截止：|Target due:s
+目标截止：|Target due:
 编号|ID
 编辑项目信息|Edit project information
-范围：|Range:s
+范围：|Range:
 补充说明|Additional notes
-记录 ID：|Record ID:s
+记录 ID：|Record ID:
 记录实际进展、会议结论或资料说明|Record actual progress, meeting decisions or material notes
 记录已变化或当前身份无权修改，请刷新|Record changed or this account can no longer edit it. Refresh.
 记录想法|Record idea
 记录类型|Record type
 记录需处理 ·|Records needing attention ·s
 该项目当前不可读取或格式已变化。|This project is unavailable or its format changed.
-详情读取失败：|Could not load details:s
+详情读取失败：|Could not load details:
 请先使用 FlareMo 账号登录。|Sign in to your FlareMo account first.
-请先修正：|Fix these first:s
+请先修正：|Fix these first:
 请填写阶段变化的原因或结果|Enter the reason or outcome for this phase change.
 请填写项目名称|Enter a project name.
 请检查表单|Check the form
@@ -204,7 +204,7 @@ const pairs = `
 负责人未关联|Owner not linked
 负责人未登记|Owner not recorded
 负责人负责业务推进；项目编辑权限按当前记录归属判断。|The owner drives the work; edit access follows current record ownership.
-负责人：|Owner:s
+负责人：|Owner:
 资料|Materials
 资料已上传并绑定原记录|File uploaded and linked to the source record.
 资料链接|Material links
@@ -218,7 +218,7 @@ const pairs = `
 进行中|Active
 已完成|Completed
 已取消|Cancelled
-进展已保存：|Update saved:s
+进展已保存：|Update saved:
 进展已保存|Update saved
 进展保存结果待确认，已阻止重复提交。|Update result is uncertain; duplicate submission is blocked.
 进展正文|Update text
@@ -228,7 +228,7 @@ const pairs = `
 阶段说明|Phase history
 阶段说明与原版修订|Phase history and FlareMo revisions
 阶段说明字段格式错误，请先在原记录修复，不能覆盖原值|The phase history is malformed. Repair the source record without overwriting it.
-附件权限待验证：|File permission cannot be verified:s
+附件权限待验证：|File permission cannot be verified:
 附件预览|File preview
 需要跟进|Needs follow-up
 项| items
@@ -274,9 +274,14 @@ const en = Object.fromEntries(
     .split("\n")
     .map((line) => {
       const separator = line.indexOf("|");
+      // Both sides are compared after `tr()` collapses internal whitespace
+      // runs, so collapse the catalog value the same way. Written with the
+      // RegExp constructor on purpose: a `/\s/` literal inside this template
+      // file was once mangled into a literal backslash-s, which silently
+      // turned every value ending in ":" into ":s".
       return [
         line.slice(0, separator),
-        line.slice(separator + 1).replace(/\\s/g, " "),
+        line.slice(separator + 1).replace(/\s+/g, " "),
       ];
     }),
 );
