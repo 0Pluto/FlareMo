@@ -21,6 +21,14 @@ type CaptureBrowserOptions = {
   disableIndexedDb?: boolean;
   disableWorklet?: boolean;
   trackWakeLock?: boolean;
+  /**
+   * Start from an empty draft store. Capture drafts persist in IndexedDB under
+   * the shared browser profile, so a draft left behind by an earlier test in
+   * the same run makes /capture open on its "unsaved capture found" recovery
+   * screen — where the record button does not exist. Opt in for tests that
+   * need the composer, and leave it off for the ones that exercise recovery.
+   */
+  clearDrafts?: boolean;
 };
 
 async function trackMicrophones(
@@ -113,6 +121,11 @@ async function enableCapture(
   options: CaptureBrowserOptions = {},
 ) {
   await trackMicrophones(page, options);
+  if (options.clearDrafts) {
+    await page.addInitScript(() => {
+      indexedDB.deleteDatabase("flaremo-local-memo-capture");
+    });
+  }
   await page.route("**/api/app/capture/status", (route) =>
     route.fulfill({
       json: { available: true, streaming: true, provider: "dashscope" },
@@ -160,7 +173,7 @@ test("captures PCM and saves a searchable, tagged, exportable timeline memo", as
   page,
 }, testInfo) => {
   const unique = `capture-e2e-${Date.now()}`;
-  const frameCount = await enableCapture(page, unique);
+  const frameCount = await enableCapture(page, unique, { clearDrafts: true });
   await page.goto("/capture");
   await expect(
     page.getByRole("button", { name: /开始录音|Start recording/ }),
