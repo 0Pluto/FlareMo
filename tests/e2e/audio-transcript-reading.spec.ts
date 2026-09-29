@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_BASE_URL } from "./auth-fixture";
+import { searchTimeline } from "./workspace-helpers";
 
 const E2E_COOKIE_MUTATION_OPTIONS = {
   headers: { origin: E2E_BASE_URL },
@@ -108,7 +109,7 @@ test("collapses a long note in the timeline and expands it on demand", async ({
   });
 
   await page.goto("/");
-  await page.getByRole("textbox", { name: /search|搜索/i }).fill(`${marker}`);
+  await searchTimeline(page, `${marker}`);
 
   const card = page.locator("article").filter({ hasText: `Marker ${marker}` });
   await expect(card).toBeVisible();

@@ -4,6 +4,7 @@ import {
   E2E_INITIAL_PASSWORD,
   E2E_USERNAME,
 } from "./auth-fixture";
+import { searchTimeline } from "./workspace-helpers";
 
 // Real browser microphone/AudioWorklet + real memo API. Only ASR transport is simulated.
 test.use({
@@ -194,9 +195,7 @@ test("captures PCM and saves a searchable, tagged, exportable timeline memo", as
   const card = page.locator("article").filter({ hasText: unique });
   await expect(card).toBeVisible();
   await expect(card.getByText("#voice", { exact: true })).toBeVisible();
-  await page
-    .getByRole("textbox", { name: /search|搜索/i })
-    .fill("edited final sentence");
+  await searchTimeline(page, "edited final sentence");
   await expect(card).toBeVisible();
 
   const response = await page.request.get(
@@ -549,7 +548,14 @@ test("confirms navigation, releases the microphone and preserves captured text",
   await page.getByRole("button", { name: /开始录音|Start recording/ }).click();
   await expect(page.getByRole("log")).toContainText(transcript);
 
-  await page.getByRole("link", { name: /返回|Back/ }).click();
+  // Leaving is intercepted by the session's navigation blocker whichever way
+  // the user goes. The standalone page's own Back link is gone — /capture now
+  // renders inside the shared workspace shell — so leave through the sidebar's
+  // "All memos" link, which is the router navigation that link used to be.
+  const leaveCapture = () =>
+    page.getByRole("link", { name: /全部记录|All memos/i }).click();
+
+  await leaveCapture();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog).toBeVisible();
   expect(await microphoneStates(page)).toEqual(["live"]);
@@ -559,7 +565,7 @@ test("confirms navigation, releases the microphone and preserves captured text",
   await expect(page).toHaveURL(/\/capture$/);
   expect(await microphoneStates(page)).toEqual(["live"]);
 
-  await page.getByRole("link", { name: /返回|Back/ }).click();
+  await leaveCapture();
   await dialog
     .getByRole("button", { name: /停止并离开|Stop and leave/ })
     .click();

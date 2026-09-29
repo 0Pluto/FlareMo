@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_BASE_URL } from "./auth-fixture";
+import { searchTimeline } from "./workspace-helpers";
 
 const E2E_COOKIE_MUTATION_OPTIONS = {
   headers: { origin: E2E_BASE_URL },
@@ -26,8 +27,12 @@ test("creates a memo and filters it by tag", async ({ page }) => {
   await expect(page.getByText(content)).toBeVisible();
   await expect(page.getByText(`#${tag}`, { exact: true })).toBeVisible();
 
-  await page.getByRole("textbox", { name: /search|搜索/i }).fill(tag);
-  await expect(page.getByText(content)).toBeVisible();
+  await searchTimeline(page, tag);
+  // The card body and the highlighted search excerpt both contain the text, so
+  // match the body paragraph specifically.
+  await expect(
+    page.getByText(content, { exact: true }).first(),
+  ).toBeVisible();
 });
 
 test("restores an unfinished new-memo draft after a reload", async ({
@@ -94,8 +99,7 @@ test("searches timeline and archived notes by default and supports archive synta
   await page.goto("/");
   await page.getByRole("button", { name: /note scope|笔记范围/i }).click();
   await page.getByRole("menuitem", { name: /archive|归档/i }).click();
-  const search = page.getByRole("textbox", { name: /search|搜索/i });
-  await search.fill(`search marker ${marker}`);
+  await searchTimeline(page, `search marker ${marker}`);
   await expect(
     page.locator("article").filter({ hasText: timeline }),
   ).toBeVisible();
@@ -106,7 +110,7 @@ test("searches timeline and archived notes by default and supports archive synta
     "search marker",
   );
 
-  await search.fill(`Archived search marker ${marker} in:archive`);
+  await searchTimeline(page, `Archived search marker ${marker} in:archive`);
   await expect(
     page.locator("article").filter({ hasText: archived }),
   ).toBeVisible();
@@ -149,7 +153,7 @@ test("keeps filters in the URL and opens a Markdown memo detail", async ({
   expect(response.ok()).toBe(true);
 
   await page.goto("/");
-  await page.getByRole("textbox", { name: /search|搜索/i }).fill(marker);
+  await searchTimeline(page, marker);
   await expect(page).toHaveURL(new RegExp(`q=${marker}`));
   const card = page.locator("article").filter({ hasText: marker });
   await expect(card.locator("strong")).toHaveText(marker);
