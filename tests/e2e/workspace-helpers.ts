@@ -54,6 +54,23 @@ export async function clearTimelineSearch(page: Page) {
 }
 
 /**
+ * Start the page with an empty local draft store.
+ *
+ * The composer and the voice-capture page both persist drafts in the same
+ * IndexedDB database under the shared browser profile. Because the suite runs
+ * serially in one profile, a draft left behind by an earlier test makes the
+ * next one open on a restored draft (the composer's Send stays disabled on
+ * empty text; /capture opens its recovery screen). Call this at the top of a
+ * test that needs the composer to start blank; tests that exercise draft
+ * recovery must NOT call it.
+ */
+export async function startWithEmptyDrafts(page: Page) {
+  await page.addInitScript(() => {
+    indexedDB.deleteDatabase("flaremo-local-memo-capture");
+  });
+}
+
+/**
  * The narrow-screen inline search. Below the `md` breakpoint the workspace
  * still renders a debounced input instead of the spotlight, which is where the
  * IME-composition and request-cancellation guards apply.

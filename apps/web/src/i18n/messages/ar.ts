@@ -155,6 +155,7 @@ const messages = {
   "nav.dailyReview": "في مثل هذا اليوم",
   "nav.randomWalk": "تجوال في الذاكرة",
   "nav.memory": "الذاكرة",
+  "nav.teamProjects": "Team projects",
   "nav.projects": "المشاريع",
   "nav.capture": "التسجيل الصوتي",
   "capture.title": "التسجيل الصوتي",

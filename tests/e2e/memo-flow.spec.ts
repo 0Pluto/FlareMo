@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_BASE_URL } from "./auth-fixture";
-import { searchTimeline } from "./workspace-helpers";
+import { searchTimeline, startWithEmptyDrafts } from "./workspace-helpers";
 
 const E2E_COOKIE_MUTATION_OPTIONS = {
   headers: { origin: E2E_BASE_URL },
@@ -247,6 +247,9 @@ test("shows the new card optimistically before the create request answers", asyn
   page,
 }) => {
   const content = `Optimistic landing #opt${Date.now()}`;
+  // A draft restored from an earlier test would replace what this test types,
+  // leaving Send disabled and the card uncreated.
+  await startWithEmptyDrafts(page);
   // Hold the create response open: the card must already be on screen from
   // the optimistic prepend, not only after the server round-trip (this is
   // the memo-cache slot fix's behavior contract).

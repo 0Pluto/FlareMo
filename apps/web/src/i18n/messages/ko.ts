@@ -158,6 +158,7 @@ const messages = {
   "nav.dailyReview": "그날의 기억",
   "nav.randomWalk": "기억의 산책",
   "nav.memory": "메모리",
+  "nav.teamProjects": "Team projects",
   "nav.projects": "프로젝트",
   "nav.capture": "음성 기록",
   "capture.title": "음성 기록",
